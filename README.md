@@ -45,5 +45,6 @@ Every key is optional. Unknown keys or bad values print a warning and are
 ignored; a missing file means all defaults. `mermaid-theme` follows `theme`
 unless set explicitly.
 
-[`examples/user.css`](examples/user.css) is a commented starting point for a
-`css` stylesheet.
+[`examples/config`](examples/config) is a commented starting point with all
+defaults; [`examples/user.css`](examples/user.css) is one for a `css`
+stylesheet.

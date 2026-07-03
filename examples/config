@@ -1,0 +1,21 @@
+# mdthing config — a starting point.
+# Copy to ~/.config/mdthing/config (or $XDG_CONFIG_HOME/mdthing/config).
+# Every key is optional; these are the defaults, commented out.
+
+# Initial window size in pixels
+#window-width = 900
+#window-height = 1000
+
+# Page theme: light or dark
+#theme = light
+
+# Extra stylesheet, loaded after the built-in one (~ expands to $HOME).
+# See examples/user.css for a starting point.
+#css = ~/.config/mdthing/user.css
+
+# Mermaid diagram theme: default, dark, forest, neutral.
+# Follows `theme` unless set explicitly.
+#mermaid-theme = default
+
+# Live reload when the displayed file changes on disk
+#watch = true
