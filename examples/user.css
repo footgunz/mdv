@@ -1,0 +1,24 @@
+/* mdthing user stylesheet — a starting point.
+ * Copy it somewhere and point your config at it:
+ *
+ *   # ~/.config/mdthing/config
+ *   css = ~/.config/mdthing/user.css
+ *
+ * It loads after the built-in stylesheet, so anything here wins.
+ * Uncomment what you want to change. */
+
+/* Wider reading column */
+/* .markdown-body { max-width: 1000px; } */
+
+/* Different body font and size */
+/* .markdown-body { font-family: "Iowan Old Style", Georgia, serif; font-size: 18px; } */
+
+/* Link accent color */
+/* .markdown-body a { color: #d2691e; } */
+
+/* Tighter code blocks */
+/* .markdown-body pre { padding: .6rem; font-size: 13px; } */
+
+/* Overrides that apply only when `theme = dark` */
+/* body.dark .markdown-body a { color: #ffa657; } */
+/* body.dark { background: #000; } */

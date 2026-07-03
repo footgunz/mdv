@@ -44,3 +44,6 @@ Optional config file at `$XDG_CONFIG_HOME/mdthing/config`
 Every key is optional. Unknown keys or bad values print a warning and are
 ignored; a missing file means all defaults. `mermaid-theme` follows `theme`
 unless set explicitly.
+
+[`examples/user.css`](examples/user.css) is a commented starting point for a
+`css` stylesheet.
