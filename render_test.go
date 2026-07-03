@@ -97,3 +97,26 @@ func TestRenderPage(t *testing.T) {
 		}
 	}
 }
+
+func TestRenderPageTheme(t *testing.T) {
+	defer func(old Config) { cfg = old }(cfg)
+
+	cfg.Theme = "dark"
+	cfg.MermaidTheme = "dark"
+	page := string(RenderPage([]byte("x"), "t"))
+	if !strings.Contains(page, `<body class="dark">`) {
+		t.Fatalf("dark theme missing body class:\n%s", page)
+	}
+	if !strings.Contains(page, `theme:'dark'`) {
+		t.Fatalf("mermaid theme not passed:\n%s", page)
+	}
+
+	cfg = defaultConfig()
+	page = string(RenderPage([]byte("x"), "t"))
+	if !strings.Contains(page, `<body>`) || strings.Contains(page, `class="dark"`) {
+		t.Fatalf("light theme should have plain body:\n%s", page)
+	}
+	if !strings.Contains(page, `theme:'default'`) {
+		t.Fatalf("mermaid default theme not passed:\n%s", page)
+	}
+}

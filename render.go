@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"path/filepath"
 	"regexp"
@@ -37,12 +38,20 @@ func RenderPage(body []byte, title string) []byte {
 	var b bytes.Buffer
 	b.WriteString(`<!doctype html><html><head><meta charset="utf-8"><title>`)
 	template.HTMLEscape(&b, []byte(title))
-	b.WriteString(`</title><link rel="stylesheet" href="/_assets/base.css"></head><body>`)
+	b.WriteString(`</title><link rel="stylesheet" href="/_assets/base.css">`)
+	if cfg.CSS != "" {
+		b.WriteString(`<link rel="stylesheet" href="/_user.css">`)
+	}
+	if cfg.Theme == "dark" {
+		b.WriteString(`</head><body class="dark">`)
+	} else {
+		b.WriteString(`</head><body>`)
+	}
 	b.WriteString(`<article class="markdown-body">`)
 	b.Write(body)
 	b.WriteString(`</article>`)
 	b.WriteString(`<script src="/_assets/mermaid.min.js"></script>`)
-	b.WriteString(`<script>mermaid.initialize({startOnLoad:true});</script>`)
+	fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, cfg.MermaidTheme)
 	b.WriteString(`<script>new EventSource('/_events').onmessage=function(){location.reload()};</script>`)
 	b.WriteString(`</body></html>`)
 	return b.Bytes()
@@ -71,7 +80,11 @@ func (r *codeRenderer) renderFenced(w util.BufWriter, source []byte, node ast.No
 		return ast.WalkSkipChildren, nil
 	}
 	var buf bytes.Buffer
-	if err := quick.Highlight(&buf, string(code), lang, "html", "github"); err != nil {
+	style := "github"
+	if cfg.Theme == "dark" {
+		style = "github-dark"
+	}
+	if err := quick.Highlight(&buf, string(code), lang, "html", style); err != nil {
 		w.WriteString("<pre><code>")
 		template.HTMLEscape(w, code)
 		w.WriteString("</code></pre>\n")
