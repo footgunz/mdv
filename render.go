@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"html/template"
+	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/alecthomas/chroma/v2/quick"
 	"github.com/yuin/goldmark"
@@ -81,5 +84,25 @@ func codeText(n ast.Node, src []byte) []byte {
 	return b.Bytes()
 }
 
-// replaced by the real implementation in Task 2
-func rewriteWikilinks(src []byte) []byte { return src }
+var wikilinkRe = regexp.MustCompile(`\[\[([^\]|]+)(?:\|([^\]]+))?\]\]`)
+
+// rewriteWikilinks converts Obsidian-style [[target]] and [[target|label]]
+// into standard Markdown links. The destination is wrapped in <...> so paths
+// with spaces stay valid; ".md" is appended when the target has no extension.
+// ponytail: regex prepass, can match inside code spans; upgrade to an AST
+// transform only if that becomes a real problem.
+func rewriteWikilinks(src []byte) []byte {
+	return wikilinkRe.ReplaceAllFunc(src, func(m []byte) []byte {
+		g := wikilinkRe.FindSubmatch(m)
+		target := strings.TrimSpace(string(g[1]))
+		label := target
+		if len(g[2]) > 0 {
+			label = strings.TrimSpace(string(g[2]))
+		}
+		href := target
+		if filepath.Ext(href) == "" {
+			href += ".md"
+		}
+		return []byte("[" + label + "](<" + href + ">)")
+	})
+}
