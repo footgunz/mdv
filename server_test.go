@@ -63,6 +63,29 @@ func TestServerServesEmbeddedAsset(t *testing.T) {
 	}
 }
 
+func TestServerUserCSS(t *testing.T) {
+	defer func(old Config) { cfg = old }(cfg)
+	dir := t.TempDir()
+	css := filepath.Join(dir, "u.css")
+	if err := os.WriteFile(css, []byte("body{color:red}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg.CSS = css
+
+	srv := NewServer(dir, NewHub())
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/_user.css")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 || !strings.Contains(readAll(t, resp), "color:red") {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
 func readAll(t *testing.T, resp *http.Response) string {
 	t.Helper()
 	b, err := io.ReadAll(resp.Body)

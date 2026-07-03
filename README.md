@@ -27,3 +27,20 @@ Close the window (or press Ctrl-C in the terminal) to quit.
 - Inline Mermaid diagrams (vendored, works offline)
 - `[[wikilinks]]` and relative links navigate, with back/forward
 - Live reload when the displayed file changes on disk
+
+## Configuration
+
+Optional config file at `$XDG_CONFIG_HOME/mdthing/config`
+(default `~/.config/mdthing/config`), ghostty-style `key = value` lines:
+
+    # ~/.config/mdthing/config
+    window-width = 1200
+    window-height = 900
+    theme = dark              # light (default) or dark
+    css = ~/notes/custom.css  # extra stylesheet, loaded after the built-in one
+    mermaid-theme = forest    # default, dark, forest, neutral
+    watch = false             # disable live reload
+
+Every key is optional. Unknown keys or bad values print a warning and are
+ignored; a missing file means all defaults. `mermaid-theme` follows `theme`
+unless set explicitly.

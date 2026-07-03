@@ -89,6 +89,13 @@ func (s *Server) Handler() http.Handler {
 		panic(err) // embedded dir is always present
 	}
 	mux.Handle("/_assets/", http.StripPrefix("/_assets/", http.FileServer(http.FS(assets))))
+	mux.HandleFunc("/_user.css", func(w http.ResponseWriter, r *http.Request) {
+		if cfg.CSS == "" {
+			http.NotFound(w, r)
+			return
+		}
+		http.ServeFile(w, r, cfg.CSS)
+	})
 	mux.HandleFunc("/", s.serve)
 	return mux
 }
