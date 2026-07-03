@@ -10,5 +10,6 @@ require (
 require (
 	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
+	github.com/webview/webview_go v0.0.0-20240831120633-6173450d4dd6 // indirect
 	golang.org/x/sys v0.13.0 // indirect
 )
