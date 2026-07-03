@@ -26,19 +26,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	cfg = LoadConfig()
+
 	baseDir := filepath.Dir(abs)
 	hub := NewHub()
 	srv := NewServer(baseDir, hub)
 
-	reloader, err := NewReloader(srv.Current, hub.Broadcast)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "mdthing:", err)
-		os.Exit(1)
+	if cfg.Watch {
+		reloader, err := NewReloader(srv.Current, hub.Broadcast)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "mdthing:", err)
+			os.Exit(1)
+		}
+		defer reloader.Close()
+		srv.SetOnNav(func(navAbs string) {
+			reloader.Watch(filepath.Dir(navAbs))
+		})
 	}
-	defer reloader.Close()
-	srv.SetOnNav(func(navAbs string) {
-		reloader.Watch(filepath.Dir(navAbs))
-	})
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -56,7 +60,7 @@ func main() {
 	w := webview.New(false)
 	defer w.Destroy()
 	w.SetTitle(filepath.Base(abs))
-	w.SetSize(900, 1000, webview.HintNone)
+	w.SetSize(cfg.WindowWidth, cfg.WindowHeight, webview.HintNone)
 
 	// Ctrl-C in the launching terminal closes the window cleanly. Terminate
 	// touches AppKit, so it must run on the UI thread via Dispatch — calling

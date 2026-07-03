@@ -101,3 +101,35 @@ func expandHome(p string) string {
 	}
 	return p
 }
+
+// configPath follows XDG explicitly: os.UserConfigDir() would return
+// ~/Library/Application Support on macOS, which is not where this belongs.
+func configPath() string {
+	dir := os.Getenv("XDG_CONFIG_HOME")
+	if dir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return ""
+		}
+		dir = filepath.Join(home, ".config")
+	}
+	return filepath.Join(dir, "mdthing", "config")
+}
+
+// LoadConfig reads the config file. A missing file is silent defaults; a
+// broken one warns on stderr and keeps going — config never stops a view.
+func LoadConfig() Config {
+	path := configPath()
+	if path == "" {
+		return defaultConfig()
+	}
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return defaultConfig()
+	}
+	c, warns := parseConfig(src)
+	for _, w := range warns {
+		fmt.Fprintln(os.Stderr, "mdthing: config:", w)
+	}
+	return c
+}
