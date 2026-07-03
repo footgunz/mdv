@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -46,9 +45,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, "mdthing:", err)
 		os.Exit(1)
 	}
+	// No graceful shutdown: WebKit keeps the SSE connection open past window
+	// close, so Server.Shutdown would wait on it forever and the process would
+	// linger in the dock. Process exit closes every socket anyway.
 	httpSrv := &http.Server{Handler: srv.Handler()}
 	go httpSrv.Serve(ln)
-	defer httpSrv.Shutdown(context.Background())
 
 	url := fmt.Sprintf("http://%s/%s", ln.Addr().String(), filepath.Base(abs))
 
@@ -57,12 +58,16 @@ func main() {
 	w.SetTitle(filepath.Base(abs))
 	w.SetSize(900, 1000, webview.HintNone)
 
-	// Ctrl-C in the launching terminal closes the window cleanly.
-	sig := make(chan os.Signal, 1)
+	// Ctrl-C in the launching terminal closes the window cleanly. Terminate
+	// touches AppKit, so it must run on the UI thread via Dispatch — calling
+	// it straight from this goroutine segfaults.
+	sig := make(chan os.Signal, 2)
 	signal.Notify(sig, os.Interrupt)
 	go func() {
 		<-sig
-		w.Terminate()
+		w.Dispatch(w.Terminate)
+		<-sig
+		os.Exit(130) // second Ctrl-C: force quit
 	}()
 
 	w.Navigate(url)
