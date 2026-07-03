@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"strings"
 	"testing"
 )
@@ -78,8 +79,32 @@ func TestRenderBodyCodeHighlight(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(out), "Println") {
+	s := string(out)
+	if !strings.Contains(s, "Println") {
 		t.Fatalf("expected code content, got: %s", out)
+	}
+	if !strings.Contains(s, "<pre") {
+		t.Fatalf("expected a <pre> block, got: %s", out)
+	}
+	for _, bad := range []string{"<html", "<style", "<body"} {
+		if strings.Contains(s, bad) {
+			t.Fatalf("expected fragment, not a full document (found %q): %s", bad, out)
+		}
+	}
+}
+
+func TestRenderBodyCodeHighlightUnknownLanguage(t *testing.T) {
+	src := "```zzznotalang\n<b>hi</b>\n```\n"
+	out, err := RenderBody([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	if !strings.Contains(s, "<pre><code>") {
+		t.Fatalf("expected plain <pre><code> fallback, got: %s", out)
+	}
+	if !strings.Contains(s, "&lt;b&gt;hi&lt;/b&gt;") {
+		t.Fatalf("expected code to be HTML-escaped, got: %s", out)
 	}
 }
 
@@ -118,5 +143,18 @@ func TestRenderPageTheme(t *testing.T) {
 	}
 	if !strings.Contains(page, `theme:'default'`) {
 		t.Fatalf("mermaid default theme not passed:\n%s", page)
+	}
+}
+
+func TestRenderPageMermaidThemeEscaping(t *testing.T) {
+	defer func(old Config) { cfg = old }(cfg)
+
+	cfg.MermaidTheme = "x'-alert(1)-'"
+	page := string(RenderPage([]byte("x"), "t"))
+	if strings.Contains(page, `theme:'x'-`) {
+		t.Fatalf("mermaid theme value broke out of the JS string literal unescaped:\n%s", page)
+	}
+	if !strings.Contains(page, template.JSEscapeString(cfg.MermaidTheme)) {
+		t.Fatalf("expected escaped mermaid theme value present:\n%s", page)
 	}
 }

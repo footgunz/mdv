@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"io"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/alecthomas/chroma/v2/quick"
+	"github.com/alecthomas/chroma/v2"
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -51,7 +55,7 @@ func RenderPage(body []byte, title string) []byte {
 	b.Write(body)
 	b.WriteString(`</article>`)
 	b.WriteString(`<script src="/_assets/mermaid.min.js"></script>`)
-	fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, cfg.MermaidTheme)
+	fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(cfg.MermaidTheme))
 	b.WriteString(`<script>new EventSource('/_events').onmessage=function(){location.reload()};</script>`)
 	b.WriteString(`</body></html>`)
 	return b.Bytes()
@@ -84,7 +88,7 @@ func (r *codeRenderer) renderFenced(w util.BufWriter, source []byte, node ast.No
 	if cfg.Theme == "dark" {
 		style = "github-dark"
 	}
-	if err := quick.Highlight(&buf, string(code), lang, "html", style); err != nil {
+	if err := highlight(&buf, string(code), lang, style); err != nil {
 		w.WriteString("<pre><code>")
 		template.HTMLEscape(w, code)
 		w.WriteString("</code></pre>\n")
@@ -92,6 +96,21 @@ func (r *codeRenderer) renderFenced(w util.BufWriter, source []byte, node ast.No
 		w.Write(buf.Bytes())
 	}
 	return ast.WalkSkipChildren, nil
+}
+
+// highlight writes code as an inline-styled HTML fragment (no standalone
+// document, no <style> block — chroma's registered "html" formatter emits
+// a full page, which is wrong inside ours).
+func highlight(w io.Writer, code, lang, styleName string) error {
+	lexer := lexers.Get(lang)
+	if lexer == nil {
+		return fmt.Errorf("no lexer for %q", lang)
+	}
+	it, err := chroma.Coalesce(lexer).Tokenise(nil, code)
+	if err != nil {
+		return err
+	}
+	return chromahtml.New().Format(w, styles.Get(styleName), it)
 }
 
 func (r *codeRenderer) renderIndented(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
