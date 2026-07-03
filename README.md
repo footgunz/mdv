@@ -36,10 +36,16 @@ Optional config file at `$XDG_CONFIG_HOME/mdthing/config`
     # ~/.config/mdthing/config
     window-width = 1200
     window-height = 900
-    theme = dark              # light (default) or dark
-    css = ~/notes/custom.css  # extra stylesheet, loaded after the built-in one
-    mermaid-theme = forest    # default, dark, forest, neutral
-    watch = false             # disable live reload
+    # light (default) or dark
+    theme = dark
+    # extra stylesheet, loaded after the built-in one
+    css = ~/notes/custom.css
+    # default, dark, forest, neutral
+    mermaid-theme = forest
+    # disable live reload
+    watch = false
+
+Comments must be on their own line — everything after `=` is the value.
 
 Every key is optional. Unknown keys or bad values print a warning and are
 ignored; a missing file means all defaults. `mermaid-theme` follows `theme`
