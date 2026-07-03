@@ -31,6 +31,23 @@ func RenderBody(src []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// RenderPage wraps an HTML body fragment in a complete document: stylesheet,
+// Mermaid bootstrap, and the live-reload subscription.
+func RenderPage(body []byte, title string) []byte {
+	var b bytes.Buffer
+	b.WriteString(`<!doctype html><html><head><meta charset="utf-8"><title>`)
+	template.HTMLEscape(&b, []byte(title))
+	b.WriteString(`</title><link rel="stylesheet" href="/_assets/base.css"></head><body>`)
+	b.WriteString(`<article class="markdown-body">`)
+	b.Write(body)
+	b.WriteString(`</article>`)
+	b.WriteString(`<script src="/_assets/mermaid.min.js"></script>`)
+	b.WriteString(`<script>mermaid.initialize({startOnLoad:true});</script>`)
+	b.WriteString(`<script>new EventSource('/_events').onmessage=function(){location.reload()};</script>`)
+	b.WriteString(`</body></html>`)
+	return b.Bytes()
+}
+
 // codeRenderer routes ```mermaid fences to a raw <pre class="mermaid"> and
 // every other fence through chroma syntax highlighting.
 type codeRenderer struct{}

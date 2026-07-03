@@ -82,3 +82,18 @@ func TestRenderBodyCodeHighlight(t *testing.T) {
 		t.Fatalf("expected code content, got: %s", out)
 	}
 }
+
+func TestRenderPage(t *testing.T) {
+	page := string(RenderPage([]byte("<p>hi</p>"), "My Doc"))
+	for _, want := range []string{
+		"<title>My Doc</title>",
+		"<p>hi</p>",
+		"/_assets/base.css",
+		"/_assets/mermaid.min.js",
+		"/_events",
+	} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("page missing %q:\n%s", want, page)
+		}
+	}
+}
