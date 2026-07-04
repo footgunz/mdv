@@ -568,3 +568,36 @@ func TestSeqSVGSelfMessageLabelClearsCurve(t *testing.T) {
 		t.Fatalf("label x %.1f overlaps curve (from %.1f, bulge to %.1f)", textX, fromX, fromX+seqSelfW*1.6)
 	}
 }
+
+func TestSeqLayoutActorMinimums(t *testing.T) {
+	d := layoutSeqFixture(t, "sequenceDiagram\nparticipant a as Hi\nparticipant b as A Rather Long Participant Label Indeed\na->>b: x")
+	pa, pb := d.participant("a"), d.participant("b")
+	if pa.W != seqActorMinW || pa.H != seqActorMinH {
+		t.Fatalf("short label must clamp to minimums, got %.1fx%.1f", pa.W, pa.H)
+	}
+	if pb.W <= seqActorMinW {
+		t.Fatalf("long label must exceed minimum width: %.1f", pb.W)
+	}
+}
+
+func TestSeqLayoutRowRhythm(t *testing.T) {
+	d := layoutSeqFixture(t, "sequenceDiagram\na->>b: one\nb->>a: two")
+	m1 := d.Items[0].(*SeqMessage)
+	m2 := d.Items[1].(*SeqMessage)
+	_, lineH := measureText("Ag", Light.FontSize)
+	if delta := m2.Y - m1.Y; delta < lineH+16 {
+		t.Fatalf("row delta %.1f, want >= lineH(%.1f)+16", delta, lineH)
+	}
+}
+
+func TestSeqLayoutSelfMessageLastParticipant(t *testing.T) {
+	d := layoutSeqFixture(t, "sequenceDiagram\na->>b: hi\nb->>b: thinking hard about it")
+	pb := d.participant("b")
+	_ = d.Items[1].(*SeqMessage) // verify it's a message
+	labelW, _ := measureText("thinking hard about it", Light.FontSize)
+	// Width must accommodate participant b's position + self-message bulge + label + margin
+	minWidth := pb.X + seqSelfW*1.6 + seqNotePad + labelW + seqMargin
+	if d.Width < minWidth {
+		t.Fatalf("diagram width %.1f too narrow for self-message at last participant, want >= %.1f", d.Width, minWidth)
+	}
+}

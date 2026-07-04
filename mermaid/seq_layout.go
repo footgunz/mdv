@@ -3,18 +3,20 @@ package mermaid
 import "fmt"
 
 const (
-	seqMargin   = 8.0
-	seqMinGap   = 60.0
-	seqBoxPadX  = 12.0
-	seqBoxPadY  = 8.0
-	seqRowPad   = 10.0 // vertical padding above each message line
-	seqNotePad  = 6.0
-	seqFramePad = 10.0
-	seqHeaderH  = 22.0 // frame kind-tab height
-	seqSelfW    = 30.0 // self-message loop width
-	seqSelfH    = 20.0 // self-message loop drop
-	seqActW     = 10.0 // activation rect width
-	seqActNest  = 4.0  // x offset per activation nesting level
+	seqMargin    = 8.0
+	seqMinGap    = 60.0
+	seqBoxPadX   = 12.0
+	seqBoxPadY   = 8.0
+	seqRowPad    = 16.0 // vertical padding above each message line
+	seqNotePad   = 6.0
+	seqFramePad  = 10.0
+	seqHeaderH   = 22.0  // frame kind-tab height
+	seqSelfW     = 30.0  // self-message loop width
+	seqSelfH     = 20.0  // self-message loop drop
+	seqActW      = 10.0  // activation rect width
+	seqActNest   = 4.0   // x offset per activation nesting level
+	seqActorMinW = 150.0 // mermaid's default actor box width
+	seqActorMinH = 50.0
 )
 
 func layoutSequence(d *SeqDiagram, t Theme) error {
@@ -31,6 +33,12 @@ func layoutSequence(d *SeqDiagram, t Theme) error {
 	for _, p := range d.Participants {
 		w, h := measureText(p.Label, t.FontSize)
 		p.W, p.H = w+2*seqBoxPadX, h+2*seqBoxPadY
+		if p.W < seqActorMinW {
+			p.W = seqActorMinW
+		}
+		if p.H < seqActorMinH {
+			p.H = seqActorMinH
+		}
 		if p.H > boxH {
 			boxH = p.H
 		}
@@ -58,7 +66,7 @@ func layoutSequence(d *SeqDiagram, t Theme) error {
 				lw, _ := measureText(numbered(v, d.Autonumber), t.FontSize)
 				i, j := idx[v.From], idx[v.To]
 				if i == j { // self-message needs room to the right
-					if ext := seqSelfW + lw + 2*seqNotePad; i == len(d.Participants)-1 && ext > rightPad {
+					if ext := seqSelfW*1.6 + lw + 2*seqNotePad; i == len(d.Participants)-1 && ext > rightPad {
 						rightPad = ext
 					} else if i < len(d.Participants)-1 {
 						needGap(i, i+1, ext+seqMinGap/2)

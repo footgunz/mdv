@@ -53,8 +53,8 @@ func measureText(s string, size float64) (w, h float64) {
 func fixedToF(v fixed.Int26_6) float64 { return float64(v) / 64 }
 
 const (
-	padX = 16.0 // horizontal label padding inside a node
-	padY = 10.0
+	padX = 20.0 // horizontal label padding inside a node
+	padY = 15.0
 )
 
 func measureGraph(g *Graph, t Theme) {

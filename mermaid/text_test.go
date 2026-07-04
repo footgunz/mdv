@@ -46,3 +46,13 @@ func TestMeasureGraph(t *testing.T) {
 		t.Fatalf("edge label unsized: %+v", labeled)
 	}
 }
+
+func TestMeasureGraphNodePadding(t *testing.T) {
+	g := mustParse(t, "graph TD\na[label]")
+	measureGraph(g, Light)
+	w, h := measureText("label", Light.FontSize)
+	n := g.node("a")
+	if n.W != w+40 || n.H != h+30 {
+		t.Fatalf("rect padding: got %.1fx%.1f, want %.1fx%.1f (text+40, text+30)", n.W, n.H, w+40, h+30)
+	}
+}
