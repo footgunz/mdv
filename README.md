@@ -24,7 +24,8 @@ Close the window (or press Ctrl-C in the terminal) to quit.
 
 - GitHub-flavored Markdown (tables, task lists, strikethrough)
 - Syntax-highlighted code blocks
-- Inline Mermaid diagrams (vendored, works offline)
+- Inline Mermaid diagrams — common flowcharts render natively to SVG (no
+  JS); other diagram types fall back to the bundled mermaid.js
 - `[[wikilinks]]` and relative links navigate, with back/forward
 - Live reload when the displayed file changes on disk
 

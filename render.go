@@ -13,6 +13,7 @@ import (
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/dgunther/mdthing/mermaid"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -20,25 +21,27 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-var md = goldmark.New(
-	goldmark.WithExtensions(extension.GFM),
-	goldmark.WithRendererOptions(
-		renderer.WithNodeRenderers(util.Prioritized(&codeRenderer{}, 100)),
-	),
-)
-
-// RenderBody converts Markdown to an HTML fragment.
-func RenderBody(src []byte) ([]byte, error) {
+// RenderBody converts Markdown to an HTML fragment. usedFallback reports
+// whether any mermaid block needed the JS renderer.
+func RenderBody(src []byte) ([]byte, bool, error) {
+	cr := &codeRenderer{}
+	md := goldmark.New(
+		goldmark.WithExtensions(extension.GFM),
+		goldmark.WithRendererOptions(
+			renderer.WithNodeRenderers(util.Prioritized(cr, 100)),
+		),
+	)
 	var buf bytes.Buffer
 	if err := md.Convert(rewriteWikilinks(src), &buf); err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return buf.Bytes(), nil
+	return buf.Bytes(), cr.mermaidFallback, nil
 }
 
 // RenderPage wraps an HTML body fragment in a complete document: stylesheet,
-// Mermaid bootstrap, and the live-reload subscription.
-func RenderPage(body []byte, title string) []byte {
+// the live-reload subscription, and (when includeMermaidJS is set) the
+// Mermaid JS bootstrap for diagrams that couldn't render natively.
+func RenderPage(body []byte, title string, includeMermaidJS bool) []byte {
 	var b bytes.Buffer
 	b.WriteString(`<!doctype html><html><head><meta charset="utf-8"><title>`)
 	template.HTMLEscape(&b, []byte(title))
@@ -54,16 +57,21 @@ func RenderPage(body []byte, title string) []byte {
 	b.WriteString(`<article class="markdown-body">`)
 	b.Write(body)
 	b.WriteString(`</article>`)
-	b.WriteString(`<script src="/_assets/mermaid.min.js"></script>`)
-	fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(cfg.MermaidTheme))
+	if includeMermaidJS {
+		b.WriteString(`<script src="/_assets/mermaid.min.js"></script>`)
+		fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(cfg.MermaidTheme))
+	}
 	b.WriteString(`<script>new EventSource('/_events').onmessage=function(){location.reload()};</script>`)
 	b.WriteString(`</body></html>`)
 	return b.Bytes()
 }
 
-// codeRenderer routes ```mermaid fences to a raw <pre class="mermaid"> and
-// every other fence through chroma syntax highlighting.
-type codeRenderer struct{}
+// codeRenderer routes ```mermaid fences to a native SVG render (falling back
+// to a raw <pre class="mermaid"> for unsupported diagrams) and every other
+// fence through chroma syntax highlighting.
+type codeRenderer struct {
+	mermaidFallback bool
+}
 
 func (r *codeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindFencedCodeBlock, r.renderFenced)
@@ -78,6 +86,16 @@ func (r *codeRenderer) renderFenced(w util.BufWriter, source []byte, node ast.No
 	lang := string(n.Language(source))
 	code := codeText(node, source)
 	if lang == "mermaid" {
+		theme := mermaid.Light
+		if cfg.Theme == "dark" {
+			theme = mermaid.Dark
+		}
+		if svg, err := mermaid.Render(code, theme); err == nil {
+			w.Write(svg)
+			w.WriteString("\n")
+			return ast.WalkSkipChildren, nil
+		}
+		r.mermaidFallback = true
 		w.WriteString(`<pre class="mermaid">`)
 		template.HTMLEscape(w, code)
 		w.WriteString("</pre>\n")

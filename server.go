@@ -120,7 +120,7 @@ func (s *Server) serveMarkdown(w http.ResponseWriter, abs string) {
 	src, err := os.ReadFile(abs)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(RenderPage([]byte("<h1>not found</h1>"), "not found"))
+		w.Write(RenderPage([]byte("<h1>not found</h1>"), "not found", false))
 		return
 	}
 	s.mu.Lock()
@@ -130,11 +130,11 @@ func (s *Server) serveMarkdown(w http.ResponseWriter, abs string) {
 		s.onNav(abs)
 	}
 
-	body, err := RenderBody(src)
+	body, fallback, err := RenderBody(src)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(RenderPage(body, filepath.Base(abs)))
+	w.Write(RenderPage(body, filepath.Base(abs), fallback))
 }

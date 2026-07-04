@@ -10,6 +10,7 @@ body { margin: 0; background: #fff; color: #24292f; }
 .markdown-body pre { background: #f6f8fa; padding: 1rem; border-radius: 6px; overflow: auto; }
 .markdown-body pre code { background: none; padding: 0; }
 .markdown-body pre.mermaid { background: none; text-align: center; }
+.markdown-body svg.mermaid-svg { display: block; margin: 1em auto; max-width: 100%; height: auto; }
 .markdown-body table { border-collapse: collapse; }
 .markdown-body th, .markdown-body td { border: 1px solid #d0d7de; padding: .4em .8em; }
 .markdown-body img { max-width: 100%; }
