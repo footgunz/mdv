@@ -86,14 +86,16 @@ func (r *codeRenderer) renderFenced(w util.BufWriter, source []byte, node ast.No
 	lang := string(n.Language(source))
 	code := codeText(node, source)
 	if lang == "mermaid" {
-		theme := mermaid.Light
-		if cfg.Theme == "dark" {
-			theme = mermaid.Dark
-		}
-		if svg, err := mermaid.Render(code, theme); err == nil {
-			w.Write(svg)
-			w.WriteString("\n")
-			return ast.WalkSkipChildren, nil
+		if cfg.MermaidRenderer != "js" {
+			theme := mermaid.Light
+			if cfg.Theme == "dark" {
+				theme = mermaid.Dark
+			}
+			if svg, err := mermaid.Render(code, theme); err == nil {
+				w.Write(svg)
+				w.WriteString("\n")
+				return ast.WalkSkipChildren, nil
+			}
 		}
 		r.mermaidFallback = true
 		w.WriteString(`<pre class="mermaid">`)

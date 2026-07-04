@@ -100,3 +100,21 @@ func TestConfigPathXDG(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestParseConfigMermaidRenderer(t *testing.T) {
+	if d := defaultConfig(); d.MermaidRenderer != "native" {
+		t.Fatalf("default renderer %q, want native", d.MermaidRenderer)
+	}
+	c, warns := parseConfig([]byte("mermaid-renderer = js"))
+	if c.MermaidRenderer != "js" || len(warns) != 0 {
+		t.Fatalf("js: got %q warns %v", c.MermaidRenderer, warns)
+	}
+	c, warns = parseConfig([]byte("mermaid-renderer = native"))
+	if c.MermaidRenderer != "native" || len(warns) != 0 {
+		t.Fatalf("native: got %q warns %v", c.MermaidRenderer, warns)
+	}
+	c, warns = parseConfig([]byte("mermaid-renderer = webgl"))
+	if c.MermaidRenderer != "native" || len(warns) != 1 || !strings.Contains(warns[0], "mermaid-renderer") {
+		t.Fatalf("bad value: got %q warns %v", c.MermaidRenderer, warns)
+	}
+}

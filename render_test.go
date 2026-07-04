@@ -229,3 +229,19 @@ func TestRenderPageMermaidThemeEscaping(t *testing.T) {
 		t.Fatalf("expected escaped mermaid theme value present:\n%s", page)
 	}
 }
+
+func TestRenderBodyMermaidJSMode(t *testing.T) {
+	defer func(old Config) { cfg = old }(cfg)
+	cfg.MermaidRenderer = "js"
+	out, fallback, err := RenderBody([]byte("```mermaid\ngraph TD\nA --> B\n```\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	if strings.Contains(s, "<svg") {
+		t.Fatalf("js mode must not render natively: %s", s)
+	}
+	if !strings.Contains(s, `<pre class="mermaid">`) || !fallback {
+		t.Fatalf("js mode must use the fallback path (fallback=%v): %s", fallback, s)
+	}
+}

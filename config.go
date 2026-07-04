@@ -11,21 +11,23 @@ import (
 // Config is mdthing's runtime configuration. Extending the schema = add a
 // field here and a case in parseConfig.
 type Config struct {
-	WindowWidth  int
-	WindowHeight int
-	Theme        string // "light" or "dark"
-	CSS          string // path to an extra user stylesheet, "" = none
-	MermaidTheme string // passed to mermaid.initialize
-	Watch        bool   // live reload on file change
+	WindowWidth     int
+	WindowHeight    int
+	Theme           string // "light" or "dark"
+	CSS             string // path to an extra user stylesheet, "" = none
+	MermaidTheme    string // passed to mermaid.initialize
+	MermaidRenderer string // "native" (built-in SVG engine) or "js" (mermaid.js)
+	Watch           bool   // live reload on file change
 }
 
 func defaultConfig() Config {
 	return Config{
-		WindowWidth:  900,
-		WindowHeight: 1000,
-		Theme:        "light",
-		MermaidTheme: "default",
-		Watch:        true,
+		WindowWidth:     900,
+		WindowHeight:    1000,
+		Theme:           "light",
+		MermaidTheme:    "default",
+		MermaidRenderer: "native",
+		Watch:           true,
 	}
 }
 
@@ -65,6 +67,12 @@ func parseConfig(src []byte) (Config, []string) {
 		case "mermaid-theme":
 			c.MermaidTheme = val
 			mermaidSet = true
+		case "mermaid-renderer":
+			if val == "native" || val == "js" {
+				c.MermaidRenderer = val
+			} else {
+				warns = append(warns, fmt.Sprintf("mermaid-renderer must be native or js, got %q", val))
+			}
 		case "watch":
 			switch val {
 			case "true":
