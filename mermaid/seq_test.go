@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -544,5 +545,26 @@ func TestSeqSVGSelfMessageCurved(t *testing.T) {
 	}
 	if strings.Contains(seg, " h ") || strings.Contains(seg, " v ") {
 		t.Fatalf("rectangular loop segments still present: %s", seg)
+	}
+}
+
+func TestSeqSVGSelfMessageLabelClearsCurve(t *testing.T) {
+	out := renderSeq(t, "sequenceDiagram\na->>a: think", Light)
+	// label must start right of the curve's widest rendered point
+	// (bezier midpoint x = from + seqSelfW*1.6*0.75 = from+36.75); with the
+	// fixed offset the label text x is from + seqSelfW*1.6 + seqNotePad = from+54
+	i := strings.Index(out, `class="seq-msg"`)
+	seg := out[i:]
+	var fromX float64
+	if _, err := fmt.Sscanf(seg[strings.Index(seg, `d="M `)+5:], "%f", &fromX); err != nil {
+		t.Fatal(err)
+	}
+	j := strings.Index(seg, "<text x=\"")
+	var textX float64
+	if _, err := fmt.Sscanf(seg[j+9:], "%f", &textX); err != nil {
+		t.Fatal(err)
+	}
+	if textX < fromX+seqSelfW*1.6 {
+		t.Fatalf("label x %.1f overlaps curve (from %.1f, bulge to %.1f)", textX, fromX, fromX+seqSelfW*1.6)
 	}
 }
