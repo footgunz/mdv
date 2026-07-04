@@ -43,8 +43,7 @@ func detect(src string) (string, string) {
 	return "", ""
 }
 
-// Stubs replaced by Tasks 2 (parse.go), 3 (text.go), 4 (layout.go), 5 (svg.go).
-func parseFlowchart(src string) (*Graph, error) { return nil, ErrUnsupported }
-func measureGraph(g *Graph, t Theme)            {}
-func layout(g *Graph) error                     { return ErrUnsupported }
-func emit(g *Graph, t Theme) []byte             { return nil }
+// Stubs replaced by Tasks 3 (text.go), 4 (layout.go), 5 (svg.go).
+func measureGraph(g *Graph, t Theme) {}
+func layout(g *Graph) error          { return ErrUnsupported }
+func emit(g *Graph, t Theme) []byte  { return nil }
