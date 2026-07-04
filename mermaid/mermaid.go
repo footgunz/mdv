@@ -33,6 +33,12 @@ func Render(src []byte, theme Theme) ([]byte, error) {
 			return nil, err
 		}
 		return emitSequence(d, theme), nil
+	case "pie":
+		p, err := parsePie(rest)
+		if err != nil {
+			return nil, err
+		}
+		return emitPie(p, theme), nil
 	default:
 		return nil, ErrUnsupported
 	}

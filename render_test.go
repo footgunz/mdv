@@ -245,3 +245,13 @@ func TestRenderBodyMermaidJSMode(t *testing.T) {
 		t.Fatalf("js mode must use the fallback path (fallback=%v): %s", fallback, s)
 	}
 }
+
+func TestRenderBodyNativePie(t *testing.T) {
+	out, fallback, err := RenderBody([]byte("```mermaid\npie\ntitle T\n\"a\" : 1\n```\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "<svg") || fallback {
+		t.Fatalf("pie must render natively (fallback=%v): %s", fallback, out)
+	}
+}
