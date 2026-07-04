@@ -492,3 +492,42 @@ func TestSeqLayoutAutoCloseDeterministic(t *testing.T) {
 		}
 	}
 }
+
+func TestSeqLayoutNoteClearsFollowingContent(t *testing.T) {
+	d := layoutSeqFixture(t, `sequenceDiagram
+participant a
+participant b
+Note over a,b: heads up
+alt yes
+  a->>b: one
+end`)
+	n := d.Items[0].(*SeqNote)
+	f := d.Items[1].(*SeqFrame)
+	if f.Y < n.Y+n.H {
+		t.Fatalf("frame top %.1f overlaps note bottom %.1f", f.Y, n.Y+n.H)
+	}
+	// same for a message following a note
+	d2 := layoutSeqFixture(t, "sequenceDiagram\nparticipant a\nNote over a: hi\na->>a: next")
+	n2 := d2.Items[0].(*SeqNote)
+	m2 := d2.Items[1].(*SeqMessage)
+	if m2.Y < n2.Y+n2.H {
+		t.Fatalf("message y %.1f inside note (bottom %.1f)", m2.Y, n2.Y+n2.H)
+	}
+}
+
+func TestSeqLayoutDividerLabelRoom(t *testing.T) {
+	d := layoutSeqFixture(t, `sequenceDiagram
+alt cached
+  a->>b: one
+else fresh
+  a->>b: two
+end`)
+	f := d.Items[0].(*SeqFrame)
+	m2 := f.Sections[1].Items[0].(*SeqMessage)
+	// the section label is drawn in [divider, divider+seqHeaderH]; the next
+	// message's text sits just above its line — it must clear the label band
+	if m2.Y-seqRowPad < f.DividerYs[0]+seqHeaderH {
+		t.Fatalf("second-section message %.1f crowds divider label (divider %.1f + header %.1f)",
+			m2.Y, f.DividerYs[0], seqHeaderH)
+	}
+}

@@ -171,7 +171,7 @@ func layoutSequence(d *SeqDiagram, t Theme) error {
 				v.W, v.H = lw+2*seqNotePad, lh+2*seqNotePad
 				y += rowH
 				v.Y = y
-				y += v.H - rowH + seqRowPad
+				y = v.Y + v.H + seqRowPad // cursor to note bottom + padding
 				a := d.participant(v.A)
 				switch v.Pos {
 				case NoteLeft:
@@ -202,6 +202,7 @@ func layoutSequence(d *SeqDiagram, t Theme) error {
 					if si > 0 {
 						y += seqRowPad
 						v.DividerYs = append(v.DividerYs, y)
+						y += seqHeaderH // room for the [section label] band
 					}
 					if err := walkV(s.Items); err != nil {
 						return err
