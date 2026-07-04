@@ -1,4 +1,4 @@
-package main
+package render
 
 import (
 	"bytes"
@@ -14,6 +14,7 @@ import (
 	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/dgunther/mdv/internal/config"
 	"github.com/dgunther/mdv/pkg/mermaid"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -22,10 +23,13 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-// RenderBody converts Markdown to an HTML fragment. usedFallback reports
+// Renderer converts Markdown to HTML using a fixed configuration.
+type Renderer struct{ Cfg config.Config }
+
+// Body converts Markdown to an HTML fragment. usedFallback reports
 // whether any mermaid block needed the JS renderer.
-func RenderBody(src []byte) ([]byte, bool, error) {
-	cr := &codeRenderer{}
+func (r Renderer) Body(src []byte) ([]byte, bool, error) {
+	cr := &codeRenderer{cfg: r.Cfg}
 	md := goldmark.New(
 		goldmark.WithExtensions(extension.GFM),
 		goldmark.WithRendererOptions(
@@ -39,18 +43,18 @@ func RenderBody(src []byte) ([]byte, bool, error) {
 	return buf.Bytes(), cr.mermaidFallback, nil
 }
 
-// RenderPage wraps an HTML body fragment in a complete document: stylesheet,
+// Page wraps an HTML body fragment in a complete document: stylesheet,
 // the live-reload subscription, and (when includeMermaidJS is set) the
 // Mermaid JS bootstrap for diagrams that couldn't render natively.
-func RenderPage(body []byte, title string, includeMermaidJS bool) []byte {
+func (r Renderer) Page(body []byte, title string, includeMermaidJS bool) []byte {
 	var b bytes.Buffer
 	b.WriteString(`<!doctype html><html><head><meta charset="utf-8"><title>`)
 	template.HTMLEscape(&b, []byte(title))
 	b.WriteString(`</title><link rel="stylesheet" href="/_assets/base.css">`)
-	if cfg.CSS != "" {
+	if r.Cfg.CSS != "" {
 		b.WriteString(`<link rel="stylesheet" href="/_user.css">`)
 	}
-	if cfg.Theme == "dark" {
+	if r.Cfg.Theme == "dark" {
 		b.WriteString(`</head><body class="dark">`)
 	} else {
 		b.WriteString(`</head><body>`)
@@ -60,30 +64,30 @@ func RenderPage(body []byte, title string, includeMermaidJS bool) []byte {
 	b.WriteString(`</article>`)
 	if includeMermaidJS {
 		b.WriteString(`<script src="/_assets/mermaid.min.js"></script>`)
-		fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(cfg.MermaidTheme))
+		fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(r.Cfg.MermaidTheme))
 	}
 	b.WriteString(`<script>new EventSource('/_events').onmessage=function(){location.reload()};</script>`)
 	b.WriteString(`</body></html>`)
 	return b.Bytes()
 }
 
-// RenderStaticPage wraps a body fragment as a self-contained document for
+// StaticPage wraps a body fragment as a self-contained document for
 // -html export: styles inlined, mermaid.js inlined only when a diagram fell
 // back, no live-reload plumbing.
-func RenderStaticPage(body []byte, title string, includeMermaidJS bool) []byte {
+func (r Renderer) StaticPage(body []byte, title string, includeMermaidJS bool) []byte {
 	var b bytes.Buffer
 	b.WriteString(`<!doctype html><html><head><meta charset="utf-8"><title>`)
 	template.HTMLEscape(&b, []byte(title))
 	b.WriteString(`</title><style>`)
 	css, _ := assetsFS.ReadFile("assets/base.css") // embedded, cannot fail
 	b.Write(css)
-	if cfg.CSS != "" {
-		if user, err := os.ReadFile(cfg.CSS); err == nil {
+	if r.Cfg.CSS != "" {
+		if user, err := os.ReadFile(r.Cfg.CSS); err == nil {
 			b.Write(user)
 		}
 	}
 	b.WriteString(`</style>`)
-	if cfg.Theme == "dark" {
+	if r.Cfg.Theme == "dark" {
 		b.WriteString(`</head><body class="dark">`)
 	} else {
 		b.WriteString(`</head><body>`)
@@ -96,7 +100,7 @@ func RenderStaticPage(body []byte, title string, includeMermaidJS bool) []byte {
 		b.WriteString(`<script>`)
 		b.Write(js)
 		b.WriteString("</script>")
-		fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(cfg.MermaidTheme))
+		fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(r.Cfg.MermaidTheme))
 	}
 	b.WriteString(`</body></html>`)
 	return b.Bytes()
@@ -106,6 +110,7 @@ func RenderStaticPage(body []byte, title string, includeMermaidJS bool) []byte {
 // to a raw <pre class="mermaid"> for unsupported diagrams) and every other
 // fence through chroma syntax highlighting.
 type codeRenderer struct {
+	cfg             config.Config
 	mermaidFallback bool
 }
 
@@ -122,9 +127,9 @@ func (r *codeRenderer) renderFenced(w util.BufWriter, source []byte, node ast.No
 	lang := string(n.Language(source))
 	code := codeText(node, source)
 	if lang == "mermaid" {
-		if cfg.MermaidRenderer != "js" {
+		if r.cfg.MermaidRenderer != "js" {
 			theme := mermaid.Light
-			if cfg.Theme == "dark" {
+			if r.cfg.Theme == "dark" {
 				theme = mermaid.Dark
 			}
 			if svg, err := mermaid.Render(code, theme); err == nil {
@@ -141,7 +146,7 @@ func (r *codeRenderer) renderFenced(w util.BufWriter, source []byte, node ast.No
 	}
 	var buf bytes.Buffer
 	style := "github"
-	if cfg.Theme == "dark" {
+	if r.cfg.Theme == "dark" {
 		style = "github-dark"
 	}
 	if err := highlight(&buf, string(code), lang, style); err != nil {

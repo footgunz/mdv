@@ -1,4 +1,4 @@
-package main
+package render
 
 import (
 	"html/template"
@@ -10,8 +10,16 @@ import (
 	"github.com/dgunther/mdv/internal/config"
 )
 
+func testRenderer(mod func(*config.Config)) Renderer {
+	c := config.Default()
+	if mod != nil {
+		mod(&c)
+	}
+	return Renderer{Cfg: c}
+}
+
 func TestRenderStaticPage(t *testing.T) {
-	page := string(RenderStaticPage([]byte("<p>hi</p>"), "Doc", false))
+	page := string(testRenderer(nil).StaticPage([]byte("<p>hi</p>"), "Doc", false))
 	for _, want := range []string{"<title>Doc</title>", "<p>hi</p>", "<style>", ".markdown-body"} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("missing %q", want)
@@ -25,7 +33,7 @@ func TestRenderStaticPage(t *testing.T) {
 }
 
 func TestRenderStaticPageMermaidJS(t *testing.T) {
-	page := string(RenderStaticPage([]byte("x"), "t", true))
+	page := string(testRenderer(nil).StaticPage([]byte("x"), "t", true))
 	if !strings.Contains(page, "mermaid.initialize") {
 		t.Fatal("fallback static page must bootstrap mermaid")
 	}
@@ -38,15 +46,16 @@ func TestRenderStaticPageMermaidJS(t *testing.T) {
 }
 
 func TestRenderStaticPageUserCSSAndTheme(t *testing.T) {
-	defer func(old config.Config) { cfg = old }(cfg)
 	dir := t.TempDir()
 	css := filepath.Join(dir, "u.css")
 	if err := os.WriteFile(css, []byte(".markdown-body{letter-spacing:9px}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg.CSS = css
-	cfg.Theme = "dark"
-	page := string(RenderStaticPage([]byte("x"), "t", false))
+	rend := testRenderer(func(c *config.Config) {
+		c.CSS = css
+		c.Theme = "dark"
+	})
+	page := string(rend.StaticPage([]byte("x"), "t", false))
 	if !strings.Contains(page, "letter-spacing:9px") {
 		t.Fatal("user css not inlined")
 	}
@@ -54,15 +63,15 @@ func TestRenderStaticPageUserCSSAndTheme(t *testing.T) {
 		t.Fatal("dark body class missing")
 	}
 
-	cfg.CSS = filepath.Join(dir, "missing.css")
-	page = string(RenderStaticPage([]byte("x"), "t", false))
+	rend.Cfg.CSS = filepath.Join(dir, "missing.css")
+	page = string(rend.StaticPage([]byte("x"), "t", false))
 	if !strings.Contains(page, "<style>") || strings.Contains(page, "letter-spacing") {
 		t.Fatal("unreadable user css must be skipped silently")
 	}
 }
 
 func TestRenderBodyGFMTable(t *testing.T) {
-	out, _, err := RenderBody([]byte("| a | b |\n|---|---|\n| 1 | 2 |\n"))
+	out, _, err := testRenderer(nil).Body([]byte("| a | b |\n|---|---|\n| 1 | 2 |\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +82,7 @@ func TestRenderBodyGFMTable(t *testing.T) {
 
 func TestRenderBodyMermaidPassthrough(t *testing.T) {
 	src := "```mermaid\ngantt\ntitle X\n```\n"
-	out, fallback, err := RenderBody([]byte(src))
+	out, fallback, err := testRenderer(nil).Body([]byte(src))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +96,7 @@ func TestRenderBodyMermaidPassthrough(t *testing.T) {
 }
 
 func TestRenderBodyNativeMermaid(t *testing.T) {
-	out, fallback, err := RenderBody([]byte("```mermaid\ngraph TD\nA[Hi] --> B\n```\n"))
+	out, fallback, err := testRenderer(nil).Body([]byte("```mermaid\ngraph TD\nA[Hi] --> B\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +113,7 @@ func TestRenderBodyNativeMermaid(t *testing.T) {
 }
 
 func TestRenderBodyMermaidFallback(t *testing.T) {
-	out, fallback, err := RenderBody([]byte("```mermaid\nclassDiagram\nA --> B\n```\n"))
+	out, fallback, err := testRenderer(nil).Body([]byte("```mermaid\nclassDiagram\nA --> B\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +124,7 @@ func TestRenderBodyMermaidFallback(t *testing.T) {
 		t.Fatal("fallback flag must be true")
 	}
 	// fallback source must stay HTML-escaped (regression guard)
-	out2, _, err := RenderBody([]byte("```mermaid\nclassDiagram\na->>b\n```\n"))
+	out2, _, err := testRenderer(nil).Body([]byte("```mermaid\nclassDiagram\na->>b\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +134,7 @@ func TestRenderBodyMermaidFallback(t *testing.T) {
 }
 
 func TestRenderBodyNativeSequence(t *testing.T) {
-	out, fallback, err := RenderBody([]byte("```mermaid\nsequenceDiagram\nAlice->>Bob: hi\nBob-->>Alice: yo\n```\n"))
+	out, fallback, err := testRenderer(nil).Body([]byte("```mermaid\nsequenceDiagram\nAlice->>Bob: hi\nBob-->>Alice: yo\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,8 +148,8 @@ func TestRenderBodyNativeSequence(t *testing.T) {
 }
 
 func TestRenderPageMermaidJSConditional(t *testing.T) {
-	with := string(RenderPage([]byte("x"), "t", true))
-	without := string(RenderPage([]byte("x"), "t", false))
+	with := string(testRenderer(nil).Page([]byte("x"), "t", true))
+	without := string(testRenderer(nil).Page([]byte("x"), "t", false))
 	if !strings.Contains(with, "mermaid.min.js") || !strings.Contains(with, "mermaid.initialize") {
 		t.Fatal("fallback page must include mermaid js")
 	}
@@ -150,9 +159,8 @@ func TestRenderPageMermaidJSConditional(t *testing.T) {
 }
 
 func TestRenderBodyNativeMermaidDarkTheme(t *testing.T) {
-	defer func(old config.Config) { cfg = old }(cfg)
-	cfg.Theme = "dark"
-	out, _, err := RenderBody([]byte("```mermaid\ngraph TD\nA --> B\n```\n"))
+	rend := testRenderer(func(c *config.Config) { c.Theme = "dark" })
+	out, _, err := rend.Body([]byte("```mermaid\ngraph TD\nA --> B\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +170,7 @@ func TestRenderBodyNativeMermaidDarkTheme(t *testing.T) {
 }
 
 func TestWikilinkSimple(t *testing.T) {
-	out, _, err := RenderBody([]byte("see [[Home]] now"))
+	out, _, err := testRenderer(nil).Body([]byte("see [[Home]] now"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +184,7 @@ func TestWikilinkSimple(t *testing.T) {
 }
 
 func TestWikilinkAliased(t *testing.T) {
-	out, _, err := RenderBody([]byte("[[notes/a|Alpha]]"))
+	out, _, err := testRenderer(nil).Body([]byte("[[notes/a|Alpha]]"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +198,7 @@ func TestWikilinkAliased(t *testing.T) {
 }
 
 func TestWikilinkKeepsExtension(t *testing.T) {
-	out, _, err := RenderBody([]byte("[[diagram.png]]"))
+	out, _, err := testRenderer(nil).Body([]byte("[[diagram.png]]"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +209,7 @@ func TestWikilinkKeepsExtension(t *testing.T) {
 
 func TestRenderBodyCodeHighlight(t *testing.T) {
 	src := "```go\nfmt.Println(1)\n```\n"
-	out, _, err := RenderBody([]byte(src))
+	out, _, err := testRenderer(nil).Body([]byte(src))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +229,7 @@ func TestRenderBodyCodeHighlight(t *testing.T) {
 
 func TestRenderBodyCodeHighlightUnknownLanguage(t *testing.T) {
 	src := "```zzznotalang\n<b>hi</b>\n```\n"
-	out, _, err := RenderBody([]byte(src))
+	out, _, err := testRenderer(nil).Body([]byte(src))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,7 +243,7 @@ func TestRenderBodyCodeHighlightUnknownLanguage(t *testing.T) {
 }
 
 func TestRenderPage(t *testing.T) {
-	page := string(RenderPage([]byte("<p>hi</p>"), "My Doc", true))
+	page := string(testRenderer(nil).Page([]byte("<p>hi</p>"), "My Doc", true))
 	for _, want := range []string{
 		"<title>My Doc</title>",
 		"<p>hi</p>",
@@ -250,11 +258,11 @@ func TestRenderPage(t *testing.T) {
 }
 
 func TestRenderPageTheme(t *testing.T) {
-	defer func(old config.Config) { cfg = old }(cfg)
-
-	cfg.Theme = "dark"
-	cfg.MermaidTheme = "dark"
-	page := string(RenderPage([]byte("x"), "t", true))
+	rend := testRenderer(func(c *config.Config) {
+		c.Theme = "dark"
+		c.MermaidTheme = "dark"
+	})
+	page := string(rend.Page([]byte("x"), "t", true))
 	if !strings.Contains(page, `<body class="dark">`) {
 		t.Fatalf("dark theme missing body class:\n%s", page)
 	}
@@ -262,8 +270,8 @@ func TestRenderPageTheme(t *testing.T) {
 		t.Fatalf("mermaid theme not passed:\n%s", page)
 	}
 
-	cfg = config.Default()
-	page = string(RenderPage([]byte("x"), "t", true))
+	rend = testRenderer(nil)
+	page = string(rend.Page([]byte("x"), "t", true))
 	if !strings.Contains(page, `<body>`) || strings.Contains(page, `class="dark"`) {
 		t.Fatalf("light theme should have plain body:\n%s", page)
 	}
@@ -273,22 +281,19 @@ func TestRenderPageTheme(t *testing.T) {
 }
 
 func TestRenderPageMermaidThemeEscaping(t *testing.T) {
-	defer func(old config.Config) { cfg = old }(cfg)
-
-	cfg.MermaidTheme = "x'-alert(1)-'"
-	page := string(RenderPage([]byte("x"), "t", true))
+	rend := testRenderer(func(c *config.Config) { c.MermaidTheme = "x'-alert(1)-'" })
+	page := string(rend.Page([]byte("x"), "t", true))
 	if strings.Contains(page, `theme:'x'-`) {
 		t.Fatalf("mermaid theme value broke out of the JS string literal unescaped:\n%s", page)
 	}
-	if !strings.Contains(page, template.JSEscapeString(cfg.MermaidTheme)) {
+	if !strings.Contains(page, template.JSEscapeString(rend.Cfg.MermaidTheme)) {
 		t.Fatalf("expected escaped mermaid theme value present:\n%s", page)
 	}
 }
 
 func TestRenderBodyMermaidJSMode(t *testing.T) {
-	defer func(old config.Config) { cfg = old }(cfg)
-	cfg.MermaidRenderer = "js"
-	out, fallback, err := RenderBody([]byte("```mermaid\ngraph TD\nA --> B\n```\n"))
+	rend := testRenderer(func(c *config.Config) { c.MermaidRenderer = "js" })
+	out, fallback, err := rend.Body([]byte("```mermaid\ngraph TD\nA --> B\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,7 +307,7 @@ func TestRenderBodyMermaidJSMode(t *testing.T) {
 }
 
 func TestRenderBodyNativeState(t *testing.T) {
-	out, fallback, err := RenderBody([]byte("```mermaid\nstateDiagram-v2\n[*] --> A\nA --> [*]\n```\n"))
+	out, fallback, err := testRenderer(nil).Body([]byte("```mermaid\nstateDiagram-v2\n[*] --> A\nA --> [*]\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -312,7 +317,7 @@ func TestRenderBodyNativeState(t *testing.T) {
 }
 
 func TestRenderBodyNativePie(t *testing.T) {
-	out, fallback, err := RenderBody([]byte("```mermaid\npie\ntitle T\n\"a\" : 1\n```\n"))
+	out, fallback, err := testRenderer(nil).Body([]byte("```mermaid\npie\ntitle T\n\"a\" : 1\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}

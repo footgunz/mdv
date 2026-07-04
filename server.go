@@ -1,12 +1,13 @@
 package main
 
 import (
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/dgunther/mdv/internal/render"
 )
 
 // Hub fans a single reload signal out to all connected SSE clients.
@@ -84,11 +85,7 @@ func (s *Server) Current() string {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/_events", s.hub)
-	assets, err := fs.Sub(assetsFS, "assets")
-	if err != nil {
-		panic(err) // embedded dir is always present
-	}
-	mux.Handle("/_assets/", http.StripPrefix("/_assets/", http.FileServer(http.FS(assets))))
+	mux.Handle("/_assets/", http.StripPrefix("/_assets/", http.FileServer(http.FS(render.Assets()))))
 	mux.HandleFunc("/_user.css", func(w http.ResponseWriter, r *http.Request) {
 		if cfg.CSS == "" {
 			http.NotFound(w, r)
@@ -120,7 +117,7 @@ func (s *Server) serveMarkdown(w http.ResponseWriter, abs string) {
 	src, err := os.ReadFile(abs)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(RenderPage([]byte("<h1>not found</h1>"), "not found", false))
+		w.Write(renderer.Page([]byte("<h1>not found</h1>"), "not found", false))
 		return
 	}
 	s.mu.Lock()
@@ -130,11 +127,11 @@ func (s *Server) serveMarkdown(w http.ResponseWriter, abs string) {
 		s.onNav(abs)
 	}
 
-	body, fallback, err := RenderBody(src)
+	body, fallback, err := renderer.Body(src)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(RenderPage(body, filepath.Base(abs), fallback))
+	w.Write(renderer.Page(body, filepath.Base(abs), fallback))
 }

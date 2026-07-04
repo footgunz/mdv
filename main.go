@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/dgunther/mdv/internal/config"
+	"github.com/dgunther/mdv/internal/render"
 	webview "github.com/webview/webview_go"
 )
 
@@ -46,6 +47,7 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
+	renderer = render.Renderer{Cfg: cfg}
 
 	if *htmlFlag {
 		src, err := os.ReadFile(abs)
@@ -53,12 +55,12 @@ func main() {
 			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)
 		}
-		body, fallback, err := RenderBody(src)
+		body, fallback, err := renderer.Body(src)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)
 		}
-		os.Stdout.Write(RenderStaticPage(body, filepath.Base(abs), fallback))
+		os.Stdout.Write(renderer.StaticPage(body, filepath.Base(abs), fallback))
 		return
 	}
 
