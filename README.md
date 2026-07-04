@@ -18,9 +18,10 @@ Close the window (or press Ctrl-C in the terminal) to quit.
 
     go build -o mdv ./cmd/mdv
 
-**Linux** requires WebKitGTK dev packages at build time, e.g. on Debian/Ubuntu:
+**Linux** requires WebKitGTK dev packages at build time — webview_go links
+against the GTK3 `webkit2gtk-4.0` ABI, e.g. on Debian/Ubuntu:
 
-    sudo apt install libwebkit2gtk-4.1-dev
+    sudo apt install libwebkit2gtk-4.0-dev
 
 **macOS** uses the system WebKit; no extra packages are needed.
 
