@@ -1,4 +1,4 @@
-# mdthing
+# mdv
 
 A command-line Markdown viewer that opens a native window. Renders inline
 Mermaid diagrams, follows links between notes, and live-reloads on save.
@@ -6,9 +6,9 @@ View-only.
 
 ## Usage
 
-    mdthing notes.md                        # open the viewer window
-    mdthing -mermaid-renderer js notes.md   # force mermaid.js rendering
-    mdthing -html notes.md > notes.html     # static self-contained HTML export
+    mdv notes.md                        # open the viewer window
+    mdv -mermaid-renderer js notes.md   # force mermaid.js rendering
+    mdv -html notes.md > notes.html     # static self-contained HTML export
 
 `-mermaid-renderer native|js` overrides the config key below for one run.
 
@@ -16,7 +16,7 @@ Close the window (or press Ctrl-C in the terminal) to quit.
 
 ## Build
 
-    go build -o mdthing .
+    go build -o mdv .
 
 **Linux** requires WebKitGTK dev packages at build time, e.g. on Debian/Ubuntu:
 
@@ -36,10 +36,10 @@ Close the window (or press Ctrl-C in the terminal) to quit.
 
 ## Configuration
 
-Optional config file at `$XDG_CONFIG_HOME/mdthing/config`
-(default `~/.config/mdthing/config`), ghostty-style `key = value` lines:
+Optional config file at `$XDG_CONFIG_HOME/mdv/config`
+(default `~/.config/mdv/config`), ghostty-style `key = value` lines:
 
-    # ~/.config/mdthing/config
+    # ~/.config/mdv/config
     window-width = 1200
     window-height = 900
     # light (default) or dark

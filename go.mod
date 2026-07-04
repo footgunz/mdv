@@ -1,4 +1,4 @@
-module github.com/dgunther/mdthing
+module github.com/dgunther/mdv
 
 go 1.26.4
 

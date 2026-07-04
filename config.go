@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// Config is mdthing's runtime configuration. Extending the schema = add a
+// Config is mdv's runtime configuration. Extending the schema = add a
 // field here and a case in parseConfig.
 type Config struct {
 	WindowWidth     int
@@ -121,7 +121,7 @@ func configPath() string {
 		}
 		dir = filepath.Join(home, ".config")
 	}
-	return filepath.Join(dir, "mdthing", "config")
+	return filepath.Join(dir, "mdv", "config")
 }
 
 // LoadConfig reads the config file. A missing file is silent defaults; a
@@ -137,7 +137,7 @@ func LoadConfig() Config {
 	}
 	c, warns := parseConfig(src)
 	for _, w := range warns {
-		fmt.Fprintln(os.Stderr, "mdthing: config:", w)
+		fmt.Fprintln(os.Stderr, "mdv: config:", w)
 	}
 	return c
 }

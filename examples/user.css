@@ -1,8 +1,8 @@
-/* mdthing user stylesheet — a starting point.
+/* mdv user stylesheet — a starting point.
  * Copy it somewhere and point your config at it:
  *
- *   # ~/.config/mdthing/config
- *   css = ~/.config/mdthing/user.css
+ *   # ~/.config/mdv/config
+ *   css = ~/.config/mdv/user.css
  *
  * It loads after the built-in stylesheet, so anything here wins.
  * Uncomment what you want to change. */

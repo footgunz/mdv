@@ -16,7 +16,7 @@ func main() {
 	rendererFlag := flag.String("mermaid-renderer", "", "mermaid renderer: native or js (overrides config)")
 	htmlFlag := flag.Bool("html", false, "render self-contained HTML to stdout and exit")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: mdthing [-html] [-mermaid-renderer native|js] <file.md>")
+		fmt.Fprintln(os.Stderr, "usage: mdv [-html] [-mermaid-renderer native|js] <file.md>")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -26,11 +26,11 @@ func main() {
 	}
 	abs, err := filepath.Abs(flag.Arg(0))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "mdthing:", err)
+		fmt.Fprintln(os.Stderr, "mdv:", err)
 		os.Exit(1)
 	}
 	if info, err := os.Stat(abs); err != nil || info.IsDir() {
-		fmt.Fprintf(os.Stderr, "mdthing: cannot read %s\n", flag.Arg(0))
+		fmt.Fprintf(os.Stderr, "mdv: cannot read %s\n", flag.Arg(0))
 		os.Exit(1)
 	}
 
@@ -41,7 +41,7 @@ func main() {
 	case "native", "js":
 		cfg.MermaidRenderer = *rendererFlag
 	default:
-		fmt.Fprintln(os.Stderr, "mdthing: -mermaid-renderer must be native or js")
+		fmt.Fprintln(os.Stderr, "mdv: -mermaid-renderer must be native or js")
 		flag.Usage()
 		os.Exit(2)
 	}
@@ -49,12 +49,12 @@ func main() {
 	if *htmlFlag {
 		src, err := os.ReadFile(abs)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "mdthing:", err)
+			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)
 		}
 		body, fallback, err := RenderBody(src)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "mdthing:", err)
+			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)
 		}
 		os.Stdout.Write(RenderStaticPage(body, filepath.Base(abs), fallback))
@@ -68,7 +68,7 @@ func main() {
 	if cfg.Watch {
 		reloader, err := NewReloader(srv.Current, hub.Broadcast)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "mdthing:", err)
+			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)
 		}
 		defer reloader.Close()
@@ -79,7 +79,7 @@ func main() {
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "mdthing:", err)
+		fmt.Fprintln(os.Stderr, "mdv:", err)
 		os.Exit(1)
 	}
 	// No graceful shutdown: WebKit keeps the SSE connection open past window

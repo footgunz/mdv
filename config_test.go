@@ -91,12 +91,12 @@ func TestParseConfigWarnings(t *testing.T) {
 
 func TestConfigPathXDG(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "/xdg")
-	if got := configPath(); got != filepath.Join("/xdg", "mdthing", "config") {
+	if got := configPath(); got != filepath.Join("/xdg", "mdv", "config") {
 		t.Fatalf("got %q", got)
 	}
 	t.Setenv("XDG_CONFIG_HOME", "")
 	home, _ := os.UserHomeDir()
-	if got := configPath(); got != filepath.Join(home, ".config", "mdthing", "config") {
+	if got := configPath(); got != filepath.Join(home, ".config", "mdv", "config") {
 		t.Fatalf("got %q", got)
 	}
 }

@@ -1,5 +1,5 @@
-# mdthing config — a starting point.
-# Copy to ~/.config/mdthing/config (or $XDG_CONFIG_HOME/mdthing/config).
+# mdv config — a starting point.
+# Copy to ~/.config/mdv/config (or $XDG_CONFIG_HOME/mdv/config).
 # Every key is optional; these are the defaults, commented out.
 
 # Initial window size in pixels
@@ -11,7 +11,7 @@
 
 # Extra stylesheet, loaded after the built-in one (~ expands to $HOME).
 # See examples/user.css for a starting point.
-#css = ~/.config/mdthing/user.css
+#css = ~/.config/mdv/user.css
 
 # Mermaid diagram theme: default, dark, forest, neutral.
 # Follows `theme` unless set explicitly.
