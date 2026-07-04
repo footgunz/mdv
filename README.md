@@ -16,7 +16,7 @@ Close the window (or press Ctrl-C in the terminal) to quit.
 
 ## Build
 
-    go build -o mdv .
+    go build -o mdv ./cmd/mdv
 
 **Linux** requires WebKitGTK dev packages at build time, e.g. on Debian/Ubuntu:
 

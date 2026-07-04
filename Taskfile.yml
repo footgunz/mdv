@@ -4,7 +4,7 @@ tasks:
   build:
     desc: Build the mdv binary
     cmds:
-      - go build -o mdv .
+      - go build -o mdv ./cmd/mdv
 
   clean:
     desc: Remove build artifacts
@@ -14,4 +14,4 @@ tasks:
   install:
     desc: Install mdv to GOPATH/bin
     cmds:
-      - go install .
+      - go install ./cmd/mdv

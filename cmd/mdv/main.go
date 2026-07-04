@@ -11,6 +11,7 @@ import (
 
 	"github.com/dgunther/mdv/internal/config"
 	"github.com/dgunther/mdv/internal/render"
+	"github.com/dgunther/mdv/internal/server"
 	webview "github.com/webview/webview_go"
 )
 
@@ -36,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg = config.Load()
+	cfg := config.Load()
 	switch *rendererFlag {
 	case "":
 		// defer to config
@@ -47,7 +48,7 @@ func main() {
 		flag.Usage()
 		os.Exit(2)
 	}
-	renderer = render.Renderer{Cfg: cfg}
+	rend := render.Renderer{Cfg: cfg}
 
 	if *htmlFlag {
 		src, err := os.ReadFile(abs)
@@ -55,21 +56,20 @@ func main() {
 			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)
 		}
-		body, fallback, err := renderer.Body(src)
+		body, fallback, err := rend.Body(src)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)
 		}
-		os.Stdout.Write(renderer.StaticPage(body, filepath.Base(abs), fallback))
+		os.Stdout.Write(rend.StaticPage(body, filepath.Base(abs), fallback))
 		return
 	}
 
-	baseDir := filepath.Dir(abs)
-	hub := NewHub()
-	srv := NewServer(baseDir, hub)
+	hub := server.NewHub()
+	srv := server.New(filepath.Dir(abs), hub, rend)
 
 	if cfg.Watch {
-		reloader, err := NewReloader(srv.Current, hub.Broadcast)
+		reloader, err := server.NewReloader(srv.Current, hub.Broadcast)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)

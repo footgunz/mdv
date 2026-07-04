@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"io"
@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/dgunther/mdv/internal/config"
+	"github.com/dgunther/mdv/internal/render"
 )
 
 func TestServerRendersMarkdown(t *testing.T) {
@@ -17,7 +18,7 @@ func TestServerRendersMarkdown(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "a.md"), []byte("# Hello"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	srv := NewServer(dir, NewHub())
+	srv := New(dir, NewHub(), render.Renderer{Cfg: config.Default()})
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -36,7 +37,7 @@ func TestServerRendersMarkdown(t *testing.T) {
 }
 
 func TestServerMissingMarkdown(t *testing.T) {
-	srv := NewServer(t.TempDir(), NewHub())
+	srv := New(t.TempDir(), NewHub(), render.Renderer{Cfg: config.Default()})
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -51,7 +52,7 @@ func TestServerMissingMarkdown(t *testing.T) {
 }
 
 func TestServerServesEmbeddedAsset(t *testing.T) {
-	srv := NewServer(t.TempDir(), NewHub())
+	srv := New(t.TempDir(), NewHub(), render.Renderer{Cfg: config.Default()})
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -66,15 +67,15 @@ func TestServerServesEmbeddedAsset(t *testing.T) {
 }
 
 func TestServerUserCSS(t *testing.T) {
-	defer func(old config.Config) { cfg = old }(cfg)
 	dir := t.TempDir()
 	css := filepath.Join(dir, "u.css")
 	if err := os.WriteFile(css, []byte("body{color:red}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cfg.CSS = css
+	c := config.Default()
+	c.CSS = css
 
-	srv := NewServer(dir, NewHub())
+	srv := New(dir, NewHub(), render.Renderer{Cfg: c})
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 

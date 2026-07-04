@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"net/http"
@@ -65,13 +65,14 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type Server struct {
 	baseDir string
 	hub     *Hub
+	r       render.Renderer
 	mu      sync.Mutex
 	current string
 	onNav   func(abs string)
 }
 
-func NewServer(baseDir string, hub *Hub) *Server {
-	return &Server{baseDir: baseDir, hub: hub}
+func New(baseDir string, hub *Hub, r render.Renderer) *Server {
+	return &Server{baseDir: baseDir, hub: hub, r: r}
 }
 
 func (s *Server) SetOnNav(fn func(abs string)) { s.onNav = fn }
@@ -87,11 +88,11 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("/_events", s.hub)
 	mux.Handle("/_assets/", http.StripPrefix("/_assets/", http.FileServer(http.FS(render.Assets()))))
 	mux.HandleFunc("/_user.css", func(w http.ResponseWriter, r *http.Request) {
-		if cfg.CSS == "" {
+		if s.r.Cfg.CSS == "" {
 			http.NotFound(w, r)
 			return
 		}
-		http.ServeFile(w, r, cfg.CSS)
+		http.ServeFile(w, r, s.r.Cfg.CSS)
 	})
 	mux.HandleFunc("/", s.serve)
 	return mux
@@ -117,7 +118,7 @@ func (s *Server) serveMarkdown(w http.ResponseWriter, abs string) {
 	src, err := os.ReadFile(abs)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-		w.Write(renderer.Page([]byte("<h1>not found</h1>"), "not found", false))
+		w.Write(s.r.Page([]byte("<h1>not found</h1>"), "not found", false))
 		return
 	}
 	s.mu.Lock()
@@ -127,11 +128,11 @@ func (s *Server) serveMarkdown(w http.ResponseWriter, abs string) {
 		s.onNav(abs)
 	}
 
-	body, fallback, err := renderer.Body(src)
+	body, fallback, err := s.r.Body(src)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(renderer.Page(body, filepath.Base(abs), fallback))
+	w.Write(s.r.Page(body, filepath.Base(abs), fallback))
 }
