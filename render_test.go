@@ -59,6 +59,28 @@ func TestRenderBodyMermaidFallback(t *testing.T) {
 	if !fallback {
 		t.Fatal("fallback flag must be true")
 	}
+	// fallback source must stay HTML-escaped (regression guard)
+	out2, _, err := RenderBody([]byte("```mermaid\nclassDiagram\na->>b\n```\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out2), "a-&gt;&gt;b") {
+		t.Fatalf("fallback source not escaped: %s", out2)
+	}
+}
+
+func TestRenderBodyNativeSequence(t *testing.T) {
+	out, fallback, err := RenderBody([]byte("```mermaid\nsequenceDiagram\nAlice->>Bob: hi\nBob-->>Alice: yo\n```\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(out)
+	if !strings.Contains(s, "<svg") || strings.Contains(s, `<pre class="mermaid">`) {
+		t.Fatalf("sequence must render natively: %s", s)
+	}
+	if fallback {
+		t.Fatal("fallback flag must be false")
+	}
 }
 
 func TestRenderPageMermaidJSConditional(t *testing.T) {
