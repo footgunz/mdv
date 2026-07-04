@@ -14,8 +14,9 @@ import (
 
 func main() {
 	rendererFlag := flag.String("mermaid-renderer", "", "mermaid renderer: native or js (overrides config)")
+	htmlFlag := flag.Bool("html", false, "render self-contained HTML to stdout and exit")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: mdthing [-mermaid-renderer native|js] <file.md>")
+		fmt.Fprintln(os.Stderr, "usage: mdthing [-html] [-mermaid-renderer native|js] <file.md>")
 		flag.PrintDefaults()
 	}
 	flag.Parse()
@@ -43,6 +44,21 @@ func main() {
 		fmt.Fprintln(os.Stderr, "mdthing: -mermaid-renderer must be native or js")
 		flag.Usage()
 		os.Exit(2)
+	}
+
+	if *htmlFlag {
+		src, err := os.ReadFile(abs)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "mdthing:", err)
+			os.Exit(1)
+		}
+		body, fallback, err := RenderBody(src)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "mdthing:", err)
+			os.Exit(1)
+		}
+		os.Stdout.Write(RenderStaticPage(body, filepath.Base(abs), fallback))
+		return
 	}
 
 	baseDir := filepath.Dir(abs)

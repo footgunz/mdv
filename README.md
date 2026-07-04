@@ -6,8 +6,9 @@ View-only.
 
 ## Usage
 
-    mdthing notes.md
+    mdthing notes.md                        # open the viewer window
     mdthing -mermaid-renderer js notes.md   # force mermaid.js rendering
+    mdthing -html notes.md > notes.html     # static self-contained HTML export
 
 `-mermaid-renderer native|js` overrides the config key below for one run.
 
@@ -61,3 +62,10 @@ unless set explicitly.
 [`examples/config`](examples/config) is a commented starting point with all
 defaults; [`examples/user.css`](examples/user.css) is one for a `css`
 stylesheet.
+
+## Static export
+
+`-html` renders once to stdout: native diagrams as inline SVG, styles
+inlined, and mermaid.js embedded only when a diagram needs the JS fallback.
+Relative image and `[[wikilink]]` targets are kept as-is — they resolve as
+long as the HTML file stays next to the sources it references.
