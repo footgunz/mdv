@@ -1,0 +1,12 @@
+version: "2"
+# ponytail: stock linter set (errcheck, govet, ineffassign, staticcheck,
+# unused); add linters here only when a class of bug actually bites.
+linters:
+  settings:
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (*github.com/dgunther/mdv/internal/server.Reloader).Close
+        - (net/http.ResponseWriter).Write
+        - (github.com/yuin/goldmark/util.BufWriter).Write
+        - (github.com/yuin/goldmark/util.BufWriter).WriteString

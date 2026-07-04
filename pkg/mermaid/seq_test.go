@@ -286,7 +286,10 @@ a-xb: three`)
 			case *SeqNote:
 				y = v.Y
 			case *SeqFrame:
-				y = v.Y
+				if v.Y <= prev {
+					t.Fatalf("y not increasing: %f then %f", prev, v.Y)
+				}
+				prev = v.Y
 				for _, s := range v.Sections {
 					walk(s.Items)
 				}

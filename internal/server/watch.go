@@ -37,7 +37,7 @@ func (r *Reloader) Watch(dir string) error {
 		return nil
 	}
 	if r.dir != "" {
-		r.w.Remove(r.dir)
+		_ = r.w.Remove(r.dir) // best-effort; the old dir may be gone
 	}
 	if err := r.w.Add(dir); err != nil {
 		return err

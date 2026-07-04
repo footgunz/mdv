@@ -6,6 +6,11 @@ tasks:
     cmds:
       - go build -o mdv ./cmd/mdv
 
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run
+
   clean:
     desc: Remove build artifacts
     cmds:

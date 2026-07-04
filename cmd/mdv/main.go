@@ -61,7 +61,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "mdv:", err)
 			os.Exit(1)
 		}
-		os.Stdout.Write(rend.StaticPage(body, filepath.Base(abs), fallback))
+		_, _ = os.Stdout.Write(rend.StaticPage(body, filepath.Base(abs), fallback))
 		return
 	}
 
@@ -76,7 +76,8 @@ func main() {
 		}
 		defer reloader.Close()
 		srv.SetOnNav(func(navAbs string) {
-			reloader.Watch(filepath.Dir(navAbs))
+			// best-effort: an unwatchable dir just means no live reload there
+			_ = reloader.Watch(filepath.Dir(navAbs))
 		})
 	}
 
@@ -89,7 +90,7 @@ func main() {
 	// close, so Server.Shutdown would wait on it forever and the process would
 	// linger in the dock. Process exit closes every socket anyway.
 	httpSrv := &http.Server{Handler: srv.Handler()}
-	go httpSrv.Serve(ln)
+	go func() { _ = httpSrv.Serve(ln) }()
 
 	url := fmt.Sprintf("http://%s/%s", ln.Addr().String(), filepath.Base(abs))
 
