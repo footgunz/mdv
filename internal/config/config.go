@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ type Config struct {
 	Watch           bool   // live reload on file change
 }
 
-func defaultConfig() Config {
+func Default() Config {
 	return Config{
 		WindowWidth:     900,
 		WindowHeight:    1000,
@@ -31,13 +31,10 @@ func defaultConfig() Config {
 	}
 }
 
-// cfg is the active configuration, set by main() before anything renders.
-var cfg = defaultConfig()
-
 // parseConfig parses ghostty-style "key = value" lines. Bad input never
 // fails: each problem produces a warning and the key keeps its default.
 func parseConfig(src []byte) (Config, []string) {
-	c := defaultConfig()
+	c := Default()
 	var warns []string
 	mermaidSet := false
 	for _, line := range strings.Split(string(src), "\n") {
@@ -110,9 +107,9 @@ func expandHome(p string) string {
 	return p
 }
 
-// configPath follows XDG explicitly: os.UserConfigDir() would return
+// path follows XDG explicitly: os.UserConfigDir() would return
 // ~/Library/Application Support on macOS, which is not where this belongs.
-func configPath() string {
+func path() string {
 	dir := os.Getenv("XDG_CONFIG_HOME")
 	if dir == "" {
 		home, err := os.UserHomeDir()
@@ -124,16 +121,16 @@ func configPath() string {
 	return filepath.Join(dir, "mdv", "config")
 }
 
-// LoadConfig reads the config file. A missing file is silent defaults; a
+// Load reads the config file. A missing file is silent defaults; a
 // broken one warns on stderr and keeps going — config never stops a view.
-func LoadConfig() Config {
-	path := configPath()
-	if path == "" {
-		return defaultConfig()
+func Load() Config {
+	p := path()
+	if p == "" {
+		return Default()
 	}
-	src, err := os.ReadFile(path)
+	src, err := os.ReadFile(p)
 	if err != nil {
-		return defaultConfig()
+		return Default()
 	}
 	c, warns := parseConfig(src)
 	for _, w := range warns {

@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"os"
@@ -9,13 +9,13 @@ import (
 
 func TestParseConfigEmpty(t *testing.T) {
 	c, warns := parseConfig(nil)
-	if c != defaultConfig() {
+	if c != Default() {
 		t.Fatalf("empty input should give defaults, got %+v", c)
 	}
 	if len(warns) != 0 {
 		t.Fatalf("unexpected warnings: %v", warns)
 	}
-	d := defaultConfig()
+	d := Default()
 	if d.WindowWidth != 900 || d.WindowHeight != 1000 || d.Theme != "light" ||
 		d.CSS != "" || d.MermaidTheme != "default" || !d.Watch {
 		t.Fatalf("bad defaults: %+v", d)
@@ -83,7 +83,7 @@ func TestParseConfigWarnings(t *testing.T) {
 		if len(warns) != 1 || !strings.Contains(warns[0], tc.want) {
 			t.Fatalf("%q: want one warning containing %q, got %v", tc.src, tc.want, warns)
 		}
-		if c != defaultConfig() {
+		if c != Default() {
 			t.Fatalf("%q: bad value must keep defaults, got %+v", tc.src, c)
 		}
 	}
@@ -91,18 +91,18 @@ func TestParseConfigWarnings(t *testing.T) {
 
 func TestConfigPathXDG(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "/xdg")
-	if got := configPath(); got != filepath.Join("/xdg", "mdv", "config") {
+	if got := path(); got != filepath.Join("/xdg", "mdv", "config") {
 		t.Fatalf("got %q", got)
 	}
 	t.Setenv("XDG_CONFIG_HOME", "")
 	home, _ := os.UserHomeDir()
-	if got := configPath(); got != filepath.Join(home, ".config", "mdv", "config") {
+	if got := path(); got != filepath.Join(home, ".config", "mdv", "config") {
 		t.Fatalf("got %q", got)
 	}
 }
 
 func TestParseConfigMermaidRenderer(t *testing.T) {
-	if d := defaultConfig(); d.MermaidRenderer != "native" {
+	if d := Default(); d.MermaidRenderer != "native" {
 		t.Fatalf("default renderer %q, want native", d.MermaidRenderer)
 	}
 	c, warns := parseConfig([]byte("mermaid-renderer = js"))

@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 
+	"github.com/dgunther/mdv/internal/config"
 	webview "github.com/webview/webview_go"
 )
 
@@ -34,7 +35,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	cfg = LoadConfig()
+	cfg = config.Load()
 	switch *rendererFlag {
 	case "":
 		// defer to config

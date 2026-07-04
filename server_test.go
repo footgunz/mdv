@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/dgunther/mdv/internal/config"
 )
 
 func TestServerRendersMarkdown(t *testing.T) {
@@ -64,7 +66,7 @@ func TestServerServesEmbeddedAsset(t *testing.T) {
 }
 
 func TestServerUserCSS(t *testing.T) {
-	defer func(old Config) { cfg = old }(cfg)
+	defer func(old config.Config) { cfg = old }(cfg)
 	dir := t.TempDir()
 	css := filepath.Join(dir, "u.css")
 	if err := os.WriteFile(css, []byte("body{color:red}"), 0o644); err != nil {

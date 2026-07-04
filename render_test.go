@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/dgunther/mdv/internal/config"
 )
 
 func TestRenderStaticPage(t *testing.T) {
@@ -36,7 +38,7 @@ func TestRenderStaticPageMermaidJS(t *testing.T) {
 }
 
 func TestRenderStaticPageUserCSSAndTheme(t *testing.T) {
-	defer func(old Config) { cfg = old }(cfg)
+	defer func(old config.Config) { cfg = old }(cfg)
 	dir := t.TempDir()
 	css := filepath.Join(dir, "u.css")
 	if err := os.WriteFile(css, []byte(".markdown-body{letter-spacing:9px}"), 0o644); err != nil {
@@ -148,7 +150,7 @@ func TestRenderPageMermaidJSConditional(t *testing.T) {
 }
 
 func TestRenderBodyNativeMermaidDarkTheme(t *testing.T) {
-	defer func(old Config) { cfg = old }(cfg)
+	defer func(old config.Config) { cfg = old }(cfg)
 	cfg.Theme = "dark"
 	out, _, err := RenderBody([]byte("```mermaid\ngraph TD\nA --> B\n```\n"))
 	if err != nil {
@@ -248,7 +250,7 @@ func TestRenderPage(t *testing.T) {
 }
 
 func TestRenderPageTheme(t *testing.T) {
-	defer func(old Config) { cfg = old }(cfg)
+	defer func(old config.Config) { cfg = old }(cfg)
 
 	cfg.Theme = "dark"
 	cfg.MermaidTheme = "dark"
@@ -260,7 +262,7 @@ func TestRenderPageTheme(t *testing.T) {
 		t.Fatalf("mermaid theme not passed:\n%s", page)
 	}
 
-	cfg = defaultConfig()
+	cfg = config.Default()
 	page = string(RenderPage([]byte("x"), "t", true))
 	if !strings.Contains(page, `<body>`) || strings.Contains(page, `class="dark"`) {
 		t.Fatalf("light theme should have plain body:\n%s", page)
@@ -271,7 +273,7 @@ func TestRenderPageTheme(t *testing.T) {
 }
 
 func TestRenderPageMermaidThemeEscaping(t *testing.T) {
-	defer func(old Config) { cfg = old }(cfg)
+	defer func(old config.Config) { cfg = old }(cfg)
 
 	cfg.MermaidTheme = "x'-alert(1)-'"
 	page := string(RenderPage([]byte("x"), "t", true))
@@ -284,7 +286,7 @@ func TestRenderPageMermaidThemeEscaping(t *testing.T) {
 }
 
 func TestRenderBodyMermaidJSMode(t *testing.T) {
-	defer func(old Config) { cfg = old }(cfg)
+	defer func(old config.Config) { cfg = old }(cfg)
 	cfg.MermaidRenderer = "js"
 	out, fallback, err := RenderBody([]byte("```mermaid\ngraph TD\nA --> B\n```\n"))
 	if err != nil {
