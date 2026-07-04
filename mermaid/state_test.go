@@ -116,6 +116,15 @@ func TestStateParseUnsupported(t *testing.T) {
 		"stateDiagram-v2\nstate A {\na --> b",
 		"stateDiagram-v2\nA --> B --> C",
 		"stateDiagram-v2\nwhat is this",
+		// composite referenced by name as a plain state: dagre can't route
+		// edges to cluster nodes, so both orders must error.
+		"stateDiagram-v2\nstate Recovery {\na --> b\n}\nRunning --> Recovery",
+		"stateDiagram-v2\nRunning --> Recovery\nstate Recovery {\na --> b\n}",
+		"stateDiagram-v2\nstate Recovery {\na --> b\n}\nRecovery : some text",
+		// reserved pseudo-id prefix must not collide with user states
+		"stateDiagram-v2\n__start --> b",
+		// duplicate composite names silently merge scopes otherwise
+		"stateDiagram-v2\nstate A {\na --> b\n}\nstate A {\nc --> d\n}",
 	} {
 		if _, err := parseState(src); !errors.Is(err, ErrUnsupported) {
 			t.Fatalf("%q: want ErrUnsupported, got %v", src, err)
