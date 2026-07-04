@@ -7,6 +7,9 @@ View-only.
 ## Usage
 
     mdthing notes.md
+    mdthing -mermaid-renderer js notes.md   # force mermaid.js rendering
+
+`-mermaid-renderer native|js` overrides the config key below for one run.
 
 Close the window (or press Ctrl-C in the terminal) to quit.
 
@@ -44,6 +47,8 @@ Optional config file at `$XDG_CONFIG_HOME/mdthing/config`
     css = ~/notes/custom.css
     # default, dark, forest, neutral
     mermaid-theme = forest
+    # mermaid renderer: native (built-in SVG) or js (bundled mermaid.js)
+    mermaid-renderer = js
     # disable live reload
     watch = false
 

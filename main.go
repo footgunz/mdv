@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -12,21 +13,37 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "usage: mdthing <file.md>")
+	rendererFlag := flag.String("mermaid-renderer", "", "mermaid renderer: native or js (overrides config)")
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "usage: mdthing [-mermaid-renderer native|js] <file.md>")
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+	if flag.NArg() != 1 {
+		flag.Usage()
 		os.Exit(2)
 	}
-	abs, err := filepath.Abs(os.Args[1])
+	abs, err := filepath.Abs(flag.Arg(0))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "mdthing:", err)
 		os.Exit(1)
 	}
 	if info, err := os.Stat(abs); err != nil || info.IsDir() {
-		fmt.Fprintf(os.Stderr, "mdthing: cannot read %s\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "mdthing: cannot read %s\n", flag.Arg(0))
 		os.Exit(1)
 	}
 
 	cfg = LoadConfig()
+	switch *rendererFlag {
+	case "":
+		// defer to config
+	case "native", "js":
+		cfg.MermaidRenderer = *rendererFlag
+	default:
+		fmt.Fprintln(os.Stderr, "mdthing: -mermaid-renderer must be native or js")
+		flag.Usage()
+		os.Exit(2)
+	}
 
 	baseDir := filepath.Dir(abs)
 	hub := NewHub()

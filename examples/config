@@ -17,5 +17,8 @@
 # Follows `theme` unless set explicitly.
 #mermaid-theme = default
 
+# Mermaid renderer: native (built-in SVG engine) or js (bundled mermaid.js)
+#mermaid-renderer = native
+
 # Live reload when the displayed file changes on disk
 #watch = true
