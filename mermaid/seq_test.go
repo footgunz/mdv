@@ -531,3 +531,18 @@ end`)
 			m2.Y, f.DividerYs[0], seqHeaderH)
 	}
 }
+
+func TestSeqSVGSelfMessageCurved(t *testing.T) {
+	out := renderSeq(t, "sequenceDiagram\na->>a: think", Light)
+	i := strings.Index(out, `class="seq-msg"`)
+	if i < 0 {
+		t.Fatal("no self-message path")
+	}
+	seg := out[i : i+220]
+	if !strings.Contains(seg, " C ") {
+		t.Fatalf("self-message should be a cubic curve: %s", seg)
+	}
+	if strings.Contains(seg, " h ") || strings.Contains(seg, " v ") {
+		t.Fatalf("rectangular loop segments still present: %s", seg)
+	}
+}

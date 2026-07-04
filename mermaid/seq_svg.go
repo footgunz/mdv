@@ -87,8 +87,8 @@ func emitSequence(d *SeqDiagram, t Theme) []byte {
 					marker = ` marker-end="url(#cross)"`
 				}
 				if v.From == v.To { // self-message loop
-					fmt.Fprintf(&b, `<path class="seq-msg" d="M %.1f %.1f h %.1f v %.1f h %.1f" fill="none" stroke="%s"%s%s/>`,
-						from, v.Y, seqSelfW, seqSelfH, -seqSelfW+4, t.EdgeStroke, dash, marker)
+					fmt.Fprintf(&b, `<path class="seq-msg" d="M %.1f %.1f C %.1f %.1f %.1f %.1f %.1f %.1f" fill="none" stroke="%s"%s%s/>`,
+						from, v.Y, from+seqSelfW*1.6, v.Y, from+seqSelfW*1.6, v.Y+seqSelfH, from+6, v.Y+seqSelfH, t.EdgeStroke, dash, marker)
 					fmt.Fprintf(&b, `<text x="%.1f" y="%.1f" fill="%s">%s</text>`,
 						from+seqSelfW+seqNotePad, v.Y+seqSelfH/2+4, t.Text, html.EscapeString(text))
 					continue
