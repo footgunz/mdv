@@ -16,7 +16,7 @@ import (
 // newTestServer builds a Server with default config; userCSS optionally
 // points /_user.css at a stylesheet.
 func newTestServer(dir, userCSS string) *Server {
-	return New(dir, NewHub(), render.Renderer{Cfg: config.Default()}, userCSS)
+	return New(dir, "index.md", render.Renderer{Cfg: config.Default()}, userCSS)
 }
 
 func TestServerRendersMarkdown(t *testing.T) {

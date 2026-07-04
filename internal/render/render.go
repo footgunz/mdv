@@ -67,7 +67,8 @@ func (r Renderer) Page(body []byte, title string, includeMermaidJS bool) []byte 
 		b.WriteString(`<script src="/_assets/mermaid.min.js"></script>`)
 		fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(r.Cfg.MermaidTheme))
 	}
-	b.WriteString(`<script>new EventSource('/_events').onmessage=function(){location.reload()};</script>`)
+	b.WriteString(`<script src="/wails/ipc.js"></script><script src="/wails/runtime.js"></script>`)
+	b.WriteString(`<script>window.runtime.EventsOn('mdv:reload',function(){location.reload()});</script>`)
 	b.WriteString(`</body></html>`)
 	return b.Bytes()
 }

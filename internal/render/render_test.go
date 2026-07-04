@@ -25,7 +25,7 @@ func TestRenderStaticPage(t *testing.T) {
 			t.Fatalf("missing %q", want)
 		}
 	}
-	for _, bad := range []string{"/_assets/", "/_events", "mermaid.initialize"} {
+	for _, bad := range []string{"/_assets/", "/wails/", "mermaid.initialize"} {
 		if strings.Contains(page, bad) {
 			t.Fatalf("static page must not contain %q", bad)
 		}
@@ -249,7 +249,8 @@ func TestRenderPage(t *testing.T) {
 		"<p>hi</p>",
 		"/_assets/base.css",
 		"/_assets/mermaid.min.js",
-		"/_events",
+		"/wails/runtime.js",
+		"mdv:reload",
 	} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("page missing %q:\n%s", want, page)

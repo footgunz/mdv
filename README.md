@@ -16,12 +16,14 @@ Close the window (or press Ctrl-C in the terminal) to quit.
 
 ## Build
 
-    go build -o mdv ./cmd/mdv
+    go build -tags desktop,production -o mdv ./cmd/mdv
 
-**Linux** requires WebKitGTK dev packages at build time — webview_go links
-against the GTK3 `webkit2gtk-4.0` ABI, e.g. on Debian/Ubuntu:
+**Linux** requires GTK3 and WebKitGTK dev packages at build time, plus the
+`webkit2_41` build tag for the current `webkit2gtk-4.1` ABI, e.g. on
+Debian/Ubuntu:
 
-    sudo apt install libwebkit2gtk-4.0-dev
+    sudo apt install libgtk-3-dev libwebkit2gtk-4.1-dev
+    go build -tags desktop,production,webkit2_41 -o mdv ./cmd/mdv
 
 **macOS** uses the system WebKit; no extra packages are needed.
 
