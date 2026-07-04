@@ -31,18 +31,18 @@ type Node struct {
 }
 
 type Edge struct {
-	From, To, Label        string
-	Style                  EdgeStyle
-	Directed               bool
-	Points                 []Point // polyline, set by layout
-	LabelX, LabelY         float64
-	LabelW, LabelH         float64
+	From, To, Label string
+	Style           EdgeStyle
+	Directed        bool
+	Points          []Point // polyline, set by layout
+	LabelX, LabelY  float64
+	LabelW, LabelH  float64
 }
 
 type Subgraph struct {
-	ID, Title string
-	Children  []string // node IDs
-	X, Y, W, H float64 // top-left + size, set by layout
+	ID, Title  string
+	Children   []string // node IDs
+	X, Y, W, H float64  // top-left + size, set by layout
 }
 
 type Graph struct {
