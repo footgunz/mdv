@@ -1,4 +1,7 @@
 version: "2"
+run:
+  # match the wails build; webkit2_41 is linux-only and inert elsewhere
+  build-tags: [desktop, production, webkit2_41]
 # ponytail: stock linter set (errcheck, govet, ineffassign, staticcheck,
 # unused); add linters here only when a class of bug actually bites.
 linters:

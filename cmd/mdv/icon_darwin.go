@@ -2,7 +2,7 @@ package main
 
 /*
 #cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Cocoa
+#cgo LDFLAGS: -framework Cocoa -framework UniformTypeIdentifiers
 #import <Cocoa/Cocoa.h>
 static void mdvSetDockIcon(const void *data, int len) {
 	NSImage *src = [[NSImage alloc] initWithData:[NSData dataWithBytes:data length:len]];

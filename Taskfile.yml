@@ -4,7 +4,7 @@ tasks:
   build:
     desc: Build the mdv binary
     cmds:
-      - go build -o mdv ./cmd/mdv
+      - go build -tags desktop,production -o mdv ./cmd/mdv
 
   lint:
     desc: Run golangci-lint
@@ -19,4 +19,4 @@ tasks:
   install:
     desc: Install mdv to GOPATH/bin
     cmds:
-      - go install ./cmd/mdv
+      - go install -tags desktop,production ./cmd/mdv

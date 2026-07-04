@@ -10,61 +10,11 @@ import (
 	"github.com/dgunther/mdv/internal/render"
 )
 
-// Hub fans a single reload signal out to all connected SSE clients.
-type Hub struct {
-	mu      sync.Mutex
-	clients map[chan struct{}]bool
-}
-
-func NewHub() *Hub { return &Hub{clients: map[chan struct{}]bool{}} }
-
-func (h *Hub) Broadcast() {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	for ch := range h.clients {
-		select {
-		case ch <- struct{}{}:
-		default:
-		}
-	}
-}
-
-func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
-		return
-	}
-	ch := make(chan struct{}, 1)
-	h.mu.Lock()
-	h.clients[ch] = true
-	h.mu.Unlock()
-	defer func() {
-		h.mu.Lock()
-		delete(h.clients, ch)
-		h.mu.Unlock()
-	}()
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	flusher.Flush()
-	for {
-		select {
-		case <-ch:
-			w.Write([]byte("data: reload\n\n"))
-			flusher.Flush()
-		case <-r.Context().Done():
-			return
-		}
-	}
-}
-
 // Server renders Markdown files under baseDir and serves them plus their
 // sibling assets. All rendering happens on demand.
 type Server struct {
 	baseDir string
-	hub     *Hub
+	entry   string // basename served at "/" (the file mdv was opened with)
 	r       render.Renderer
 	userCSS string // optional stylesheet served at /_user.css
 	mu      sync.Mutex
@@ -72,8 +22,8 @@ type Server struct {
 	onNav   func(abs string)
 }
 
-func New(baseDir string, hub *Hub, r render.Renderer, userCSS string) *Server {
-	return &Server{baseDir: baseDir, hub: hub, r: r, userCSS: userCSS}
+func New(baseDir, entry string, r render.Renderer, userCSS string) *Server {
+	return &Server{baseDir: baseDir, entry: entry, r: r, userCSS: userCSS}
 }
 
 func (s *Server) SetOnNav(fn func(abs string)) { s.onNav = fn }
@@ -86,7 +36,6 @@ func (s *Server) Current() string {
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("/_events", s.hub)
 	mux.Handle("/_assets/", http.StripPrefix("/_assets/", http.FileServer(http.FS(render.Assets()))))
 	mux.HandleFunc("/_user.css", func(w http.ResponseWriter, r *http.Request) {
 		if s.userCSS == "" {
@@ -102,6 +51,9 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	// Resolve the request path safely under baseDir (block traversal).
 	rel := strings.TrimPrefix(filepath.Clean(r.URL.Path), "/")
+	if rel == "" {
+		rel = s.entry // the Wails window loads "/", not "/<file>.md"
+	}
 	abs := filepath.Join(s.baseDir, rel)
 	if abs != s.baseDir && !strings.HasPrefix(abs, s.baseDir+string(os.PathSeparator)) {
 		http.Error(w, "forbidden", http.StatusForbidden)

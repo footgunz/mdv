@@ -1,18 +1,19 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
 
 	"github.com/dgunther/mdv/internal/config"
 	"github.com/dgunther/mdv/internal/render"
 	"github.com/dgunther/mdv/internal/server"
-	webview "github.com/webview/webview_go"
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 func main() {
@@ -65,53 +66,40 @@ func main() {
 		return
 	}
 
-	hub := server.NewHub()
-	srv := server.New(filepath.Dir(abs), hub, rend, cfg.CSS)
+	srv := server.New(filepath.Dir(abs), filepath.Base(abs), rend, cfg.CSS)
 
-	if cfg.Watch {
-		reloader, err := server.NewReloader(srv.Current, hub.Broadcast)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "mdv:", err)
-			os.Exit(1)
-		}
-		defer reloader.Close()
-		srv.SetOnNav(func(navAbs string) {
-			// best-effort: an unwatchable dir just means no live reload there
-			_ = reloader.Watch(filepath.Dir(navAbs))
-		})
-	}
-
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	var reloader *server.Reloader
+	err = wails.Run(&options.App{
+		Title:       filepath.Base(abs),
+		Width:       cfg.WindowWidth,
+		Height:      cfg.WindowHeight,
+		AssetServer: &assetserver.Options{Handler: srv.Handler()},
+		OnStartup: func(ctx context.Context) {
+			setDockIcon()
+			// Ctrl-C is handled by wails itself (SIGINT/SIGTERM -> Quit).
+			if cfg.Watch {
+				rl, err := server.NewReloader(srv.Current, func() {
+					wruntime.EventsEmit(ctx, "mdv:reload")
+				})
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "mdv: live reload disabled:", err)
+					return
+				}
+				reloader = rl
+				srv.SetOnNav(func(navAbs string) {
+					// best-effort: an unwatchable dir just means no live reload there
+					_ = rl.Watch(filepath.Dir(navAbs))
+				})
+			}
+		},
+		OnShutdown: func(ctx context.Context) {
+			if reloader != nil {
+				_ = reloader.Close()
+			}
+		},
+	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "mdv:", err)
 		os.Exit(1)
 	}
-	// No graceful shutdown: WebKit keeps the SSE connection open past window
-	// close, so Server.Shutdown would wait on it forever and the process would
-	// linger in the dock. Process exit closes every socket anyway.
-	httpSrv := &http.Server{Handler: srv.Handler()}
-	go func() { _ = httpSrv.Serve(ln) }()
-
-	url := fmt.Sprintf("http://%s/%s", ln.Addr().String(), filepath.Base(abs))
-
-	w := webview.New(false)
-	defer w.Destroy()
-	setDockIcon()
-	w.SetTitle(filepath.Base(abs))
-	w.SetSize(cfg.WindowWidth, cfg.WindowHeight, webview.HintNone)
-
-	// Ctrl-C in the launching terminal closes the window cleanly. Terminate
-	// touches AppKit, so it must run on the UI thread via Dispatch — calling
-	// it straight from this goroutine segfaults.
-	sig := make(chan os.Signal, 2)
-	signal.Notify(sig, os.Interrupt)
-	go func() {
-		<-sig
-		w.Dispatch(w.Terminate)
-		<-sig
-		os.Exit(130) // second Ctrl-C: force quit
-	}()
-
-	w.Navigate(url)
-	w.Run() // blocks until the window is closed
 }
