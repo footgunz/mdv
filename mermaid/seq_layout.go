@@ -63,7 +63,7 @@ func layoutSequence(d *SeqDiagram, t Theme) error {
 		for _, it := range items {
 			switch v := it.(type) {
 			case *SeqMessage:
-				lw, _ := measureText(numbered(v, d.Autonumber), t.FontSize)
+				lw, _ := measureText(v.Text, t.FontSize)
 				i, j := idx[v.From], idx[v.To]
 				if i == j { // self-message needs room to the right
 					if ext := seqSelfW*1.6 + lw + 2*seqNotePad; i == len(d.Participants)-1 && ext > rightPad {
@@ -240,18 +240,6 @@ func layoutSequence(d *SeqDiagram, t Theme) error {
 	}
 	d.Height = bottom + seqMargin
 	return nil
-}
-
-// numbered returns the display text of a message (autonumber prefix applied).
-// Shared with seq_svg.go.
-func numbered(m *SeqMessage, auto bool) string {
-	if auto && m.Num > 0 {
-		return fmt.Sprintf("%d. %s", m.Num, m.Text)
-	}
-	if auto {
-		return m.Text // horizontal pass runs before Num assignment; close enough for width
-	}
-	return m.Text
 }
 
 // frameSpan returns the min/max lifeline x among participants referenced

@@ -73,7 +73,7 @@ func emitSequence(d *SeqDiagram, t Theme) []byte {
 		for _, it := range list {
 			switch v := it.(type) {
 			case *SeqMessage:
-				text := numbered(v, d.Autonumber)
+				text := v.Text
 				from, to := participantX(d, v.From), participantX(d, v.To)
 				dash := ""
 				if v.Dashed {
@@ -91,12 +91,18 @@ func emitSequence(d *SeqDiagram, t Theme) []byte {
 						from, v.Y, from+seqSelfW*1.6, v.Y, from+seqSelfW*1.6, v.Y+seqSelfH, from+6, v.Y+seqSelfH, t.EdgeStroke, dash, marker)
 					fmt.Fprintf(&b, `<text x="%.1f" y="%.1f" fill="%s">%s</text>`,
 						from+seqSelfW*1.6+seqNotePad, v.Y+seqSelfH/2+4, t.Text, html.EscapeString(text))
+					if d.Autonumber {
+						autonumBadge(&b, from, v.Y, v.Num, t)
+					}
 					continue
 				}
 				fmt.Fprintf(&b, `<line class="seq-msg" x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="%s"%s%s/>`,
 					from, v.Y, to, v.Y, t.EdgeStroke, dash, marker)
 				fmt.Fprintf(&b, `<text x="%.1f" y="%.1f" text-anchor="middle" fill="%s">%s</text>`,
 					(from+to)/2, v.Y-5, t.Text, html.EscapeString(text))
+				if d.Autonumber {
+					autonumBadge(&b, from, v.Y, v.Num, t)
+				}
 			case *SeqNote:
 				fmt.Fprintf(&b, `<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="%s" stroke="%s"/>`,
 					v.X, v.Y, v.W, v.H, t.SubgraphFill, t.NodeStroke)
@@ -124,3 +130,9 @@ func emitSequence(d *SeqDiagram, t Theme) []byte {
 }
 
 func participantX(d *SeqDiagram, id string) float64 { return d.participant(id).X }
+
+// autonumBadge draws a mermaid-style circled message number at the line start.
+func autonumBadge(b *bytes.Buffer, x, y float64, n int, t Theme) {
+	fmt.Fprintf(b, `<circle class="autonumber" cx="%.1f" cy="%.1f" r="8" fill="%s"/>`, x, y, t.Text)
+	fmt.Fprintf(b, `<text x="%.1f" y="%.1f" text-anchor="middle" dominant-baseline="central" font-size="10" fill="%s">%d</text>`, x, y, t.NodeFill, n)
+}

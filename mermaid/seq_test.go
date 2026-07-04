@@ -443,10 +443,41 @@ func TestSeqSVGElements(t *testing.T) {
 	if c := strings.Count(out, `class="activation"`); c != 1 {
 		t.Fatalf("activations %d, want 1", c)
 	}
-	for _, want := range []string{">Alice<", ">Bob<", "1. solid request", "5. again", "spanning note", ">loop<"} {
+	if c := strings.Count(out, `class="autonumber"`); c != 5 {
+		t.Fatalf("autonumber badges %d, want 5", c)
+	}
+	for _, want := range []string{">Alice<", ">Bob<", ">solid request<", ">again<", "spanning note", ">loop<"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("missing %q", want)
 		}
+	}
+}
+
+func TestSeqSVGAutonumberBadges(t *testing.T) {
+	out := renderSeq(t, "sequenceDiagram\nautonumber\na->>b: one\nb->>b: two", Light)
+	if c := strings.Count(out, `class="autonumber"`); c != 2 {
+		t.Fatalf("badges %d, want 2\n%s", c, out)
+	}
+	for _, want := range []string{">1<", ">2<"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing badge number %s", want)
+		}
+	}
+	if strings.Contains(out, "1. one") || strings.Contains(out, "2. two") {
+		t.Fatal("N. prefix must be gone from labels")
+	}
+	if !strings.Contains(out, ">one<") {
+		t.Fatal("plain label missing")
+	}
+
+	plain := renderSeq(t, "sequenceDiagram\na->>b: x", Light)
+	if strings.Contains(plain, "autonumber") {
+		t.Fatal("badges emitted without autonumber")
+	}
+
+	dark := renderSeq(t, "sequenceDiagram\nautonumber\na->>b: x", Dark)
+	if !strings.Contains(dark, `r="8" fill="`+Dark.Text+`"`) {
+		t.Fatalf("dark badge fill must be Dark.Text:\n%s", dark)
 	}
 }
 
