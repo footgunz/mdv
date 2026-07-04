@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -62,6 +63,41 @@ func RenderPage(body []byte, title string, includeMermaidJS bool) []byte {
 		fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(cfg.MermaidTheme))
 	}
 	b.WriteString(`<script>new EventSource('/_events').onmessage=function(){location.reload()};</script>`)
+	b.WriteString(`</body></html>`)
+	return b.Bytes()
+}
+
+// RenderStaticPage wraps a body fragment as a self-contained document for
+// -html export: styles inlined, mermaid.js inlined only when a diagram fell
+// back, no live-reload plumbing.
+func RenderStaticPage(body []byte, title string, includeMermaidJS bool) []byte {
+	var b bytes.Buffer
+	b.WriteString(`<!doctype html><html><head><meta charset="utf-8"><title>`)
+	template.HTMLEscape(&b, []byte(title))
+	b.WriteString(`</title><style>`)
+	css, _ := assetsFS.ReadFile("assets/base.css") // embedded, cannot fail
+	b.Write(css)
+	if cfg.CSS != "" {
+		if user, err := os.ReadFile(cfg.CSS); err == nil {
+			b.Write(user)
+		}
+	}
+	b.WriteString(`</style>`)
+	if cfg.Theme == "dark" {
+		b.WriteString(`</head><body class="dark">`)
+	} else {
+		b.WriteString(`</head><body>`)
+	}
+	b.WriteString(`<article class="markdown-body">`)
+	b.Write(body)
+	b.WriteString(`</article>`)
+	if includeMermaidJS {
+		js, _ := assetsFS.ReadFile("assets/mermaid.min.js")
+		b.WriteString(`<script>`)
+		b.Write(js)
+		b.WriteString("</script>")
+		fmt.Fprintf(&b, `<script>mermaid.initialize({startOnLoad:true,theme:'%s'});</script>`, template.JSEscapeString(cfg.MermaidTheme))
+	}
 	b.WriteString(`</body></html>`)
 	return b.Bytes()
 }

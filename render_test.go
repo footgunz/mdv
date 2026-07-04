@@ -2,9 +2,62 @@ package main
 
 import (
 	"html/template"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestRenderStaticPage(t *testing.T) {
+	page := string(RenderStaticPage([]byte("<p>hi</p>"), "Doc", false))
+	for _, want := range []string{"<title>Doc</title>", "<p>hi</p>", "<style>", ".markdown-body"} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("missing %q", want)
+		}
+	}
+	for _, bad := range []string{"/_assets/", "/_events", "mermaid.initialize"} {
+		if strings.Contains(page, bad) {
+			t.Fatalf("static page must not contain %q", bad)
+		}
+	}
+}
+
+func TestRenderStaticPageMermaidJS(t *testing.T) {
+	page := string(RenderStaticPage([]byte("x"), "t", true))
+	if !strings.Contains(page, "mermaid.initialize") {
+		t.Fatal("fallback static page must bootstrap mermaid")
+	}
+	if len(page) < 1_000_000 {
+		t.Fatalf("mermaid payload not inlined (len=%d)", len(page))
+	}
+	if strings.Contains(page, "/_assets/") {
+		t.Fatal("static page must not reference served assets")
+	}
+}
+
+func TestRenderStaticPageUserCSSAndTheme(t *testing.T) {
+	defer func(old Config) { cfg = old }(cfg)
+	dir := t.TempDir()
+	css := filepath.Join(dir, "u.css")
+	if err := os.WriteFile(css, []byte(".markdown-body{letter-spacing:9px}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg.CSS = css
+	cfg.Theme = "dark"
+	page := string(RenderStaticPage([]byte("x"), "t", false))
+	if !strings.Contains(page, "letter-spacing:9px") {
+		t.Fatal("user css not inlined")
+	}
+	if !strings.Contains(page, `<body class="dark">`) {
+		t.Fatal("dark body class missing")
+	}
+
+	cfg.CSS = filepath.Join(dir, "missing.css")
+	page = string(RenderStaticPage([]byte("x"), "t", false))
+	if !strings.Contains(page, "<style>") || strings.Contains(page, "letter-spacing") {
+		t.Fatal("unreadable user css must be skipped silently")
+	}
+}
 
 func TestRenderBodyGFMTable(t *testing.T) {
 	out, _, err := RenderBody([]byte("| a | b |\n|---|---|\n| 1 | 2 |\n"))
