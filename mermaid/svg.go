@@ -90,10 +90,17 @@ func emit(g *Graph, t Theme) []byte {
 				n.X, y0, x0+n.W, n.Y, n.X, y0+n.H, x0, n.Y, style)
 		case ShapeCircle:
 			fmt.Fprintf(&b, `<circle cx="%.1f" cy="%.1f" r="%.1f" %s/>`, n.X, n.Y, n.W/2, style)
+		case ShapeStateStart:
+			fmt.Fprintf(&b, `<circle class="state-start" cx="%.1f" cy="%.1f" r="7" fill="%s"/>`, n.X, n.Y, t.NodeStroke)
+		case ShapeStateEnd:
+			fmt.Fprintf(&b, `<circle class="state-end" cx="%.1f" cy="%.1f" r="8" fill="none" stroke="%s" stroke-width="1.5"/><circle cx="%.1f" cy="%.1f" r="4.5" fill="%s"/>`,
+				n.X, n.Y, t.NodeStroke, n.X, n.Y, t.NodeStroke)
 		}
-		fmt.Fprintf(&b,
-			`<text x="%.1f" y="%.1f" text-anchor="middle" dominant-baseline="central" fill="%s">%s</text>`,
-			n.X, n.Y, t.Text, html.EscapeString(n.Label))
+		if n.Label != "" {
+			fmt.Fprintf(&b,
+				`<text x="%.1f" y="%.1f" text-anchor="middle" dominant-baseline="central" fill="%s">%s</text>`,
+				n.X, n.Y, t.Text, html.EscapeString(n.Label))
+		}
 	}
 
 	b.WriteString(`</svg>`)

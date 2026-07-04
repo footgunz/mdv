@@ -39,6 +39,16 @@ func Render(src []byte, theme Theme) ([]byte, error) {
 			return nil, err
 		}
 		return emitPie(p, theme), nil
+	case "stateDiagram", "stateDiagram-v2":
+		g, err := parseState(rest)
+		if err != nil {
+			return nil, err
+		}
+		measureGraph(g, theme)
+		if err := layout(g); err != nil {
+			return nil, err
+		}
+		return emit(g, theme), nil
 	default:
 		return nil, ErrUnsupported
 	}

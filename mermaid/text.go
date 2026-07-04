@@ -71,6 +71,8 @@ func measureGraph(g *Graph, t Theme) {
 				d = n.H
 			}
 			n.W, n.H = d, d
+		case ShapeStateStart, ShapeStateEnd:
+			n.W, n.H = 18, 18
 		}
 	}
 	for _, e := range g.Edges {

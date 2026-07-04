@@ -246,6 +246,16 @@ func TestRenderBodyMermaidJSMode(t *testing.T) {
 	}
 }
 
+func TestRenderBodyNativeState(t *testing.T) {
+	out, fallback, err := RenderBody([]byte("```mermaid\nstateDiagram-v2\n[*] --> A\nA --> [*]\n```\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "<svg") || fallback {
+		t.Fatalf("state must render natively (fallback=%v): %s", fallback, out)
+	}
+}
+
 func TestRenderBodyNativePie(t *testing.T) {
 	out, fallback, err := RenderBody([]byte("```mermaid\npie\ntitle T\n\"a\" : 1\n```\n"))
 	if err != nil {

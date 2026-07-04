@@ -11,6 +11,8 @@ const (
 	ShapeStadium
 	ShapeDiamond
 	ShapeCircle
+	ShapeStateStart // filled dot ([*] as source)
+	ShapeStateEnd   // double circle ([*] as target)
 )
 
 type EdgeStyle int
