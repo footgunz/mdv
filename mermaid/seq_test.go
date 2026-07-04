@@ -475,3 +475,20 @@ func TestSeqSVGDashedStyles(t *testing.T) {
 		t.Fatalf("dasharray count %d, want 3\n%s", c, out)
 	}
 }
+
+func TestSeqLayoutAutoCloseDeterministic(t *testing.T) {
+	src := "sequenceDiagram\nactivate a\nactivate b\na->>b: x\nb->>a: y"
+	first, err := Render([]byte(src), Light)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 50; i++ {
+		out, err := Render([]byte(src), Light)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(out, first) {
+			t.Fatalf("render %d differs from first", i)
+		}
+	}
+}

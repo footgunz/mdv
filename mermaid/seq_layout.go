@@ -222,9 +222,9 @@ func layoutSequence(d *SeqDiagram, t Theme) error {
 
 	// Auto-close activations still open.
 	bottom := y + rowH
-	for id, s := range open {
-		for range s {
-			if err := closeAct(id, bottom); err != nil {
+	for _, p := range d.Participants {
+		for range open[p.ID] {
+			if err := closeAct(p.ID, bottom); err != nil {
 				return fmt.Errorf("internal: %w", err)
 			}
 		}
