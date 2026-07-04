@@ -66,13 +66,14 @@ type Server struct {
 	baseDir string
 	hub     *Hub
 	r       render.Renderer
+	userCSS string // optional stylesheet served at /_user.css
 	mu      sync.Mutex
 	current string
 	onNav   func(abs string)
 }
 
-func New(baseDir string, hub *Hub, r render.Renderer) *Server {
-	return &Server{baseDir: baseDir, hub: hub, r: r}
+func New(baseDir string, hub *Hub, r render.Renderer, userCSS string) *Server {
+	return &Server{baseDir: baseDir, hub: hub, r: r, userCSS: userCSS}
 }
 
 func (s *Server) SetOnNav(fn func(abs string)) { s.onNav = fn }
@@ -88,11 +89,11 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("/_events", s.hub)
 	mux.Handle("/_assets/", http.StripPrefix("/_assets/", http.FileServer(http.FS(render.Assets()))))
 	mux.HandleFunc("/_user.css", func(w http.ResponseWriter, r *http.Request) {
-		if s.r.Cfg.CSS == "" {
+		if s.userCSS == "" {
 			http.NotFound(w, r)
 			return
 		}
-		http.ServeFile(w, r, s.r.Cfg.CSS)
+		http.ServeFile(w, r, s.userCSS)
 	})
 	mux.HandleFunc("/", s.serve)
 	return mux

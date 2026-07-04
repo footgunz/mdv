@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -79,7 +80,8 @@ func (r Renderer) StaticPage(body []byte, title string, includeMermaidJS bool) [
 	b.WriteString(`<!doctype html><html><head><meta charset="utf-8"><title>`)
 	template.HTMLEscape(&b, []byte(title))
 	b.WriteString(`</title><style>`)
-	css, _ := assetsFS.ReadFile("assets/base.css") // embedded, cannot fail
+	assets := Assets()
+	css, _ := fs.ReadFile(assets, "base.css") // embedded, cannot fail
 	b.Write(css)
 	if r.Cfg.CSS != "" {
 		if user, err := os.ReadFile(r.Cfg.CSS); err == nil {
@@ -96,7 +98,7 @@ func (r Renderer) StaticPage(body []byte, title string, includeMermaidJS bool) [
 	b.Write(body)
 	b.WriteString(`</article>`)
 	if includeMermaidJS {
-		js, _ := assetsFS.ReadFile("assets/mermaid.min.js")
+		js, _ := fs.ReadFile(assets, "mermaid.min.js")
 		b.WriteString(`<script>`)
 		b.Write(js)
 		b.WriteString("</script>")

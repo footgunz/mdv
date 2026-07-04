@@ -13,12 +13,18 @@ import (
 	"github.com/dgunther/mdv/internal/render"
 )
 
+// newTestServer builds a Server with default config; userCSS optionally
+// points /_user.css at a stylesheet.
+func newTestServer(dir, userCSS string) *Server {
+	return New(dir, NewHub(), render.Renderer{Cfg: config.Default()}, userCSS)
+}
+
 func TestServerRendersMarkdown(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "a.md"), []byte("# Hello"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	srv := New(dir, NewHub(), render.Renderer{Cfg: config.Default()})
+	srv := newTestServer(dir, "")
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -37,7 +43,7 @@ func TestServerRendersMarkdown(t *testing.T) {
 }
 
 func TestServerMissingMarkdown(t *testing.T) {
-	srv := New(t.TempDir(), NewHub(), render.Renderer{Cfg: config.Default()})
+	srv := newTestServer(t.TempDir(), "")
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -52,7 +58,7 @@ func TestServerMissingMarkdown(t *testing.T) {
 }
 
 func TestServerServesEmbeddedAsset(t *testing.T) {
-	srv := New(t.TempDir(), NewHub(), render.Renderer{Cfg: config.Default()})
+	srv := newTestServer(t.TempDir(), "")
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -72,10 +78,7 @@ func TestServerUserCSS(t *testing.T) {
 	if err := os.WriteFile(css, []byte("body{color:red}"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	c := config.Default()
-	c.CSS = css
-
-	srv := New(dir, NewHub(), render.Renderer{Cfg: c})
+	srv := newTestServer(dir, css)
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 

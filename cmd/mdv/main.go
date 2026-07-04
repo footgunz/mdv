@@ -66,7 +66,7 @@ func main() {
 	}
 
 	hub := server.NewHub()
-	srv := server.New(filepath.Dir(abs), hub, rend)
+	srv := server.New(filepath.Dir(abs), hub, rend, cfg.CSS)
 
 	if cfg.Watch {
 		reloader, err := server.NewReloader(srv.Current, hub.Broadcast)
