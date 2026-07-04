@@ -42,6 +42,3 @@ func detect(src string) (string, string) {
 	}
 	return "", ""
 }
-
-// Stub replaced by Task 5 (svg.go).
-func emit(g *Graph, t Theme) []byte { return nil }
