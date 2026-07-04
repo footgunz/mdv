@@ -149,6 +149,52 @@ a --> c`)
 	}
 }
 
+func TestParseSubgraphQuotedTitle(t *testing.T) {
+	g := mustParse(t, "graph TD\nsubgraph s [\"Nice Title\"]\na\nend")
+	if g.Subgraphs[0].Title != "Nice Title" {
+		t.Fatalf("got %q, want %q", g.Subgraphs[0].Title, "Nice Title")
+	}
+}
+
+func TestParseAmpersandInBracketLabel(t *testing.T) {
+	g := mustParse(t, "graph TD\na[Fish & Chips] --> b")
+	if g.node("a").Label != "Fish & Chips" {
+		t.Fatalf("got %q, want %q", g.node("a").Label, "Fish & Chips")
+	}
+	if len(g.Edges) != 1 || g.Edges[0].From != "a" || g.Edges[0].To != "b" {
+		t.Fatalf("edges = %+v", g.Edges)
+	}
+
+	g = mustParse(t, "graph TD\nx --> y[Y & Z] & w")
+	if g.node("y").Label != "Y & Z" {
+		t.Fatalf("got %q, want %q", g.node("y").Label, "Y & Z")
+	}
+	if len(g.Edges) != 2 {
+		t.Fatalf("edges %d, want 2", len(g.Edges))
+	}
+	if g.Edges[0].From != "x" || g.Edges[0].To != "y" || g.Edges[1].From != "x" || g.Edges[1].To != "w" {
+		t.Fatalf("edges = %+v", g.Edges)
+	}
+}
+
+func TestParseHyphenatedInlineLabel(t *testing.T) {
+	g := mustParse(t, "graph TD\na -- non-blocking --> b")
+	if len(g.Edges) != 1 || g.Edges[0].From != "a" || g.Edges[0].To != "b" || g.Edges[0].Label != "non-blocking" {
+		t.Fatalf("edges = %+v", g.Edges)
+	}
+
+	g = mustParse(t, "graph TD\na -- see --> c --> b")
+	if len(g.Edges) != 2 {
+		t.Fatalf("edges %d, want 2", len(g.Edges))
+	}
+	if g.Edges[0].From != "a" || g.Edges[0].To != "c" || g.Edges[0].Label != "see" {
+		t.Fatalf("edge0 = %+v", g.Edges[0])
+	}
+	if g.Edges[1].From != "c" || g.Edges[1].To != "b" {
+		t.Fatalf("edge1 = %+v", g.Edges[1])
+	}
+}
+
 func TestParseIgnoredAndComments(t *testing.T) {
 	g := mustParse(t, `graph TD
 %% a comment

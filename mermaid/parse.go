@@ -9,7 +9,7 @@ import (
 var (
 	headerRe = regexp.MustCompile(`^(graph|flowchart)\s+(TD|TB|LR|RL|BT)\s*$`)
 	// -- label --> rewritten to -->|label| before splitting
-	inlineLabelRe = regexp.MustCompile(`(--|==|-\.)\s+([^-=>|]+?)\s+(-->|---|==>|-\.->)`)
+	inlineLabelRe = regexp.MustCompile(`(--|==|-\.)\s+(.+?)\s+(-->|---|==>|-\.->)`)
 	edgeOpRe      = regexp.MustCompile(`\s*(-->|---|-\.->|==>)\s*`)
 	labelPipeRe   = regexp.MustCompile(`^\|([^|]*)\|\s*`)
 	nodeRe        = regexp.MustCompile(`^([A-Za-z0-9_.-]+)\s*(\(\(|\(\[|\[|\(|\{)?`)
@@ -60,7 +60,7 @@ func parseFlowchart(src string) (*Graph, error) {
 			if title == "" {
 				title = m[1]
 			}
-			cur = &Subgraph{ID: "sg_" + m[1], Title: strings.TrimSpace(title)}
+			cur = &Subgraph{ID: "sg_" + m[1], Title: strings.Trim(strings.TrimSpace(title), `"`)}
 			g.Subgraphs = append(g.Subgraphs, cur)
 			continue
 		}
@@ -131,7 +131,7 @@ func parseStatement(g *Graph, cur *Subgraph, line string) error {
 // parseNodeList parses `a[X]` or `a & b & c`, registering nodes; returns ids.
 func parseNodeList(g *Graph, cur *Subgraph, s string) ([]string, error) {
 	var ids []string
-	for _, part := range strings.Split(s, "&") {
+	for _, part := range splitTopLevel(s, '&') {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			return nil, unsup("empty node in %q", s)
@@ -143,6 +143,30 @@ func parseNodeList(g *Graph, cur *Subgraph, s string) ([]string, error) {
 		ids = append(ids, id)
 	}
 	return ids, nil
+}
+
+// splitTopLevel splits s on sep, but only where bracket depth is zero and
+// not inside a double-quoted span, so `a[Fish & Chips]` stays one part.
+func splitTopLevel(s string, sep byte) []string {
+	var parts []string
+	depth, inQuotes, start := 0, false, 0
+	for i := 0; i < len(s); i++ {
+		switch c := s[i]; {
+		case c == '"':
+			inQuotes = !inQuotes
+		case inQuotes:
+			// inside quotes, ignore brackets and separators
+		case c == '[' || c == '(' || c == '{':
+			depth++
+		case c == ']' || c == ')' || c == '}':
+			depth--
+		case c == sep && depth == 0:
+			parts = append(parts, s[start:i])
+			start = i + 1
+		}
+	}
+	parts = append(parts, s[start:])
+	return parts
 }
 
 var shapeClose = map[string]struct {
