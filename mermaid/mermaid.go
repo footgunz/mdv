@@ -24,6 +24,15 @@ func Render(src []byte, theme Theme) ([]byte, error) {
 			return nil, err
 		}
 		return emit(g, theme), nil
+	case "sequenceDiagram":
+		d, err := parseSequence(rest)
+		if err != nil {
+			return nil, err
+		}
+		if err := layoutSequence(d, theme); err != nil {
+			return nil, err
+		}
+		return emitSequence(d, theme), nil
 	default:
 		return nil, ErrUnsupported
 	}
