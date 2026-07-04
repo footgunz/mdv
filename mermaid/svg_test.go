@@ -98,6 +98,27 @@ func TestSVGThemeApplied(t *testing.T) {
 	}
 }
 
+func TestSVGEdgesCurved(t *testing.T) {
+	out := string(render(t, "graph TD\na --> b\nb --> c\na --> c", Light))
+	if !strings.Contains(out, " Q ") {
+		t.Fatalf("edges should contain quadratic segments:\n%s", out)
+	}
+}
+
+func TestEdgePath(t *testing.T) {
+	two := edgePath([]Point{{0, 0}, {10, 10}})
+	if two != "M 0.0 0.0 L 10.0 10.0" {
+		t.Fatalf("two-point edge must stay straight: %q", two)
+	}
+	three := edgePath([]Point{{0, 0}, {10, 0}, {10, 10}})
+	if !strings.Contains(three, "Q 10.0 0.0") {
+		t.Fatalf("interior point must become a Q control point: %q", three)
+	}
+	if !strings.HasSuffix(three, "L 10.0 10.0") {
+		t.Fatalf("path must terminate at the exact final point (marker anchor): %q", three)
+	}
+}
+
 func TestGoldens(t *testing.T) {
 	mmds, err := filepath.Glob("testdata/*.mmd")
 	if err != nil || len(mmds) == 0 {

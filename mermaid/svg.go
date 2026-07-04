@@ -7,6 +7,28 @@ import (
 	"strings"
 )
 
+// edgePath renders points as a smooth path: straight for two points,
+// midpoint-quadratic smoothing through interior points otherwise (same
+// visual family as mermaid's curveBasis). The path always terminates at
+// the exact final point so marker-end anchors correctly.
+func edgePath(pts []Point) string {
+	var d strings.Builder
+	fmt.Fprintf(&d, "M %.1f %.1f", pts[0].X, pts[0].Y)
+	if len(pts) == 2 {
+		fmt.Fprintf(&d, " L %.1f %.1f", pts[1].X, pts[1].Y)
+		return d.String()
+	}
+	mid := func(a, b Point) Point { return Point{(a.X + b.X) / 2, (a.Y + b.Y) / 2} }
+	m := mid(pts[0], pts[1])
+	fmt.Fprintf(&d, " L %.1f %.1f", m.X, m.Y)
+	for i := 1; i < len(pts)-1; i++ {
+		m = mid(pts[i], pts[i+1])
+		fmt.Fprintf(&d, " Q %.1f %.1f %.1f %.1f", pts[i].X, pts[i].Y, m.X, m.Y)
+	}
+	fmt.Fprintf(&d, " L %.1f %.1f", pts[len(pts)-1].X, pts[len(pts)-1].Y)
+	return d.String()
+}
+
 // emit renders a positioned graph as a standalone <svg> element.
 func emit(g *Graph, t Theme) []byte {
 	var b bytes.Buffer
@@ -31,11 +53,7 @@ func emit(g *Graph, t Theme) []byte {
 		if len(e.Points) < 2 {
 			continue
 		}
-		var d strings.Builder
-		fmt.Fprintf(&d, "M %.1f %.1f", e.Points[0].X, e.Points[0].Y)
-		for _, p := range e.Points[1:] {
-			fmt.Fprintf(&d, " L %.1f %.1f", p.X, p.Y)
-		}
+		d := edgePath(e.Points)
 		attrs := fmt.Sprintf(`fill="none" stroke="%s" stroke-width="1.5"`, t.EdgeStroke)
 		if e.Style == EdgeDotted {
 			attrs += ` stroke-dasharray="4,4"`
@@ -46,7 +64,7 @@ func emit(g *Graph, t Theme) []byte {
 		if e.Directed {
 			attrs += ` marker-end="url(#arrow)"`
 		}
-		fmt.Fprintf(&b, `<path class="edge" d="%s" %s/>`, d.String(), attrs)
+		fmt.Fprintf(&b, `<path class="edge" d="%s" %s/>`, d, attrs)
 		if e.Label != "" {
 			fmt.Fprintf(&b,
 				`<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="%s" opacity="0.85"/>`,
