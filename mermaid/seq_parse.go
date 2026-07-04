@@ -6,7 +6,11 @@ import (
 )
 
 var (
-	seqPartRe  = regexp.MustCompile(`^(participant|actor)\s+([A-Za-z0-9_.-]+)(?:\s+as\s+(.+))?$`)
+	seqPartRe = regexp.MustCompile(`^(participant|actor)\s+([A-Za-z0-9_.-]+)(?:\s+as\s+(.+))?$`)
+	// ponytail: the id class overlaps the arrow tokens, so an id containing a
+	// literal arrow substring (`req-x-resp`) can split ambiguously — `a-x-b: t`
+	// reads as `a -x -b`, same as mermaid's own grammar. A real tokenizer is
+	// the upgrade path if that ever bites.
 	seqMsgRe   = regexp.MustCompile(`^([A-Za-z0-9_.-]+?)\s*(-->>|--x|-->|->>|-x|->)\s*([+-]?)\s*([A-Za-z0-9_.-]+)\s*:\s*(.*)$`)
 	seqNoteRe  = regexp.MustCompile(`(?i)^note\s+(left of|right of|over)\s+([A-Za-z0-9_.-]+)(?:\s*,\s*([A-Za-z0-9_.-]+))?\s*:\s*(.*)$`)
 	seqActRe   = regexp.MustCompile(`^(activate|deactivate)\s+([A-Za-z0-9_.-]+)$`)
