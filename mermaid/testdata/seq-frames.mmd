@@ -1,0 +1,12 @@
+sequenceDiagram
+participant a as App
+participant d as DB
+alt cache hit
+  a->>a: serve cached
+else miss
+  a->>+d: query
+  d-->>-a: rows
+end
+loop poll
+  a-xd: heartbeat
+end

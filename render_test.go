@@ -49,7 +49,7 @@ func TestRenderBodyNativeMermaid(t *testing.T) {
 }
 
 func TestRenderBodyMermaidFallback(t *testing.T) {
-	out, fallback, err := RenderBody([]byte("```mermaid\nsequenceDiagram\nA->>B: hi\n```\n"))
+	out, fallback, err := RenderBody([]byte("```mermaid\nclassDiagram\nA --> B\n```\n"))
 	if err != nil {
 		t.Fatal(err)
 	}

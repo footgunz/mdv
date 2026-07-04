@@ -1,0 +1,8 @@
+sequenceDiagram
+autonumber
+participant c as Client
+participant s as Server
+c->>+s: GET /doc
+s-->>-c: 200 OK
+c->>c: render
+Note over c,s: happy path

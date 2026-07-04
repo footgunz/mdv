@@ -88,6 +88,3 @@ func (d *SeqDiagram) participant(id string) *Participant {
 	}
 	return nil
 }
-
-// Stub replaced by Task 4 (seq_svg.go). layoutSequence lives in seq_layout.go.
-func emitSequence(d *SeqDiagram, t Theme) []byte { return nil }

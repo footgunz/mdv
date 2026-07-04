@@ -1,6 +1,8 @@
 package mermaid
 
 import (
+	"bytes"
+	"encoding/xml"
 	"errors"
 	"strings"
 	"testing"
@@ -378,5 +380,98 @@ func TestSeqLayoutActivationAutoCloseAndError(t *testing.T) {
 	bad := mustParseSeq(t, "sequenceDiagram\nparticipant a\ndeactivate a")
 	if err := layoutSequence(bad, Light); err == nil {
 		t.Fatal("unmatched deactivate must error")
+	}
+}
+
+func renderSeq(t *testing.T, src string, theme Theme) string {
+	t.Helper()
+	out, err := Render([]byte(src), theme)
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	return string(out)
+}
+
+const seqFixture = `sequenceDiagram
+autonumber
+participant a as Alice
+participant b as Bob
+a->>+b: solid request
+b-->>-a: dashed reply
+a-xb: cross
+a->>a: self note to self
+Note over a,b: spanning note
+loop retry
+  a->>b: again
+end`
+
+func TestSeqSVGWellFormed(t *testing.T) {
+	out := renderSeq(t, seqFixture, Light)
+	d := xml.NewDecoder(bytes.NewReader([]byte(out)))
+	for {
+		_, err := d.Token()
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			t.Fatalf("invalid XML: %v\n%s", err, out)
+		}
+	}
+	if !strings.Contains(out, `class="mermaid-svg"`) || !strings.Contains(out, "viewBox=") {
+		t.Fatalf("root attrs missing: %.120s", out)
+	}
+}
+
+func TestSeqSVGElements(t *testing.T) {
+	out := renderSeq(t, seqFixture, Light)
+	if c := strings.Count(out, `class="lifeline"`); c != 2 {
+		t.Fatalf("lifelines %d, want 2", c)
+	}
+	if c := strings.Count(out, `class="seq-msg"`); c != 5 {
+		t.Fatalf("message lines %d, want 5", c)
+	}
+	if !strings.Contains(out, "url(#cross)") {
+		t.Fatal("cross marker not used")
+	}
+	if !strings.Contains(out, "url(#arrow)") {
+		t.Fatal("arrow marker not used")
+	}
+	if c := strings.Count(out, `class="seq-frame"`); c != 1 {
+		t.Fatalf("frames %d, want 1", c)
+	}
+	if c := strings.Count(out, `class="activation"`); c != 1 {
+		t.Fatalf("activations %d, want 1", c)
+	}
+	for _, want := range []string{">Alice<", ">Bob<", "1. solid request", "5. again", "spanning note", ">loop<"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q", want)
+		}
+	}
+}
+
+func TestSeqSVGEscaping(t *testing.T) {
+	out := renderSeq(t, "sequenceDiagram\na->>b: <script>&\"attack\"", Light)
+	if strings.Contains(out, "<script>") {
+		t.Fatal("unescaped message text")
+	}
+	if !strings.Contains(out, "&lt;script&gt;") {
+		t.Fatalf("expected escaped text:\n%s", out)
+	}
+}
+
+func TestSeqSVGThemes(t *testing.T) {
+	light := renderSeq(t, "sequenceDiagram\na->>b: x", Light)
+	dark := renderSeq(t, "sequenceDiagram\na->>b: x", Dark)
+	if !strings.Contains(light, Light.NodeFill) || !strings.Contains(dark, Dark.NodeFill) || light == dark {
+		t.Fatal("themes not applied")
+	}
+}
+
+func TestSeqSVGDashedStyles(t *testing.T) {
+	out := renderSeq(t, "sequenceDiagram\na-->>b: dashed", Light)
+	// the message line (class seq-msg) must carry a dasharray; lifelines are dashed too,
+	// so count: 2 lifelines + 1 dashed message = 3 dasharray occurrences
+	if c := strings.Count(out, "stroke-dasharray"); c != 3 {
+		t.Fatalf("dasharray count %d, want 3\n%s", c, out)
 	}
 }
