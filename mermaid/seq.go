@@ -89,7 +89,6 @@ func (d *SeqDiagram) participant(id string) *Participant {
 	return nil
 }
 
-// Stubs replaced by Tasks 2 (seq_parse.go), 3 (seq_layout.go), 4 (seq_svg.go).
-func parseSequence(src string) (*SeqDiagram, error) { return nil, ErrUnsupported }
-func layoutSequence(d *SeqDiagram, t Theme) error   { return ErrUnsupported }
-func emitSequence(d *SeqDiagram, t Theme) []byte    { return nil }
+// Stubs replaced by Tasks 3 (seq_layout.go), 4 (seq_svg.go).
+func layoutSequence(d *SeqDiagram, t Theme) error { return ErrUnsupported }
+func emitSequence(d *SeqDiagram, t Theme) []byte  { return nil }
