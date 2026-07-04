@@ -95,6 +95,7 @@ func main() {
 
 	w := webview.New(false)
 	defer w.Destroy()
+	setDockIcon()
 	w.SetTitle(filepath.Base(abs))
 	w.SetSize(cfg.WindowWidth, cfg.WindowHeight, webview.HintNone)
 

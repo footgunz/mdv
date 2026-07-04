@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Dock icon source. Regenerate icon.png with:
+       qlmanage -t -s 1024 -o cmd/mdv cmd/mdv/icon.svg && mv cmd/mdv/icon.svg.png cmd/mdv/icon.png
+       Tile geometry (48,48 928x928 r=220) is mirrored by the rounded-corner
+       clip in icon_darwin.go — keep them in sync. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b5188"/>
+      <stop offset="1" stop-color="#131c33"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.75"/>
+      <stop offset="0.25" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.1"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dfe3ec"/>
+    </linearGradient>
+  </defs>
+
+  <!-- tile -->
+  <rect x="48" y="48" width="928" height="928" rx="220" fill="url(#bg)"/>
+  <!-- edge highlight -->
+  <rect x="55" y="55" width="914" height="914" rx="213" fill="none" stroke="url(#rim)" stroke-width="12"/>
+
+  <!-- markdown document with folded corner -->
+  <g transform="translate(512,512) scale(2.0) translate(-515.5,-301)">
+    <path d="M427 148 H560 L634 222 V424 q0 30 -30 30 H427 q-30 0 -30 -30 V178 q0 -30 30 -30 Z" fill="url(#paper)"/>
+    <path d="M560 148 L634 222 H588 q-28 0 -28 -28 Z" fill="#a9b2c6"/>
+    <g fill="none" stroke="#1d2c50" stroke-linecap="round">
+      <!-- # -->
+      <g stroke-width="17">
+        <path d="M466 196 L458 268 M508 196 L500 268"/>
+        <path d="M446 220 H520 M440 246 H514"/>
+      </g>
+      <!-- - followed by text lines -->
+      <g stroke-width="15">
+        <path d="M443 316 H473"/>
+        <path d="M500 304 H592 M500 330 H592"/>
+      </g>
+      <!-- ** -->
+      <g stroke-width="14">
+        <path d="M462 368 V412 M443 379 L481 401 M481 379 L443 401"/>
+        <path d="M528 368 V412 M509 379 L547 401 M547 379 L509 401"/>
+      </g>
+    </g>
+  </g>
+</svg>
