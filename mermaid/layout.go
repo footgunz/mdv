@@ -150,6 +150,11 @@ func layout(g *Graph) error {
 		}
 		n.X, n.Y = p.X, p.Y
 	}
+	if len(out.Edges) != len(g.Edges) {
+		return fmt.Errorf("dagre returned %d edges, want %d", len(out.Edges), len(g.Edges))
+	}
+	// out.Edges is index-aligned with g.Edges (same order through the JSON
+	// round-trip); do not reorder either side.
 	for i, e := range g.Edges {
 		e.Points = out.Edges[i].Points
 		e.LabelX, e.LabelY = out.Edges[i].X, out.Edges[i].Y
