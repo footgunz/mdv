@@ -109,9 +109,6 @@ func parseSequence(src string) (*SeqDiagram, error) {
 			default:
 				n.Pos = NoteOver
 			}
-			if d.participant(n.A) == nil || (n.B != "" && d.participant(n.B) == nil) {
-				return nil, unsup("note references unknown participant %q", line)
-			}
 			if n.Pos != NoteOver && n.B != "" {
 				return nil, unsup("two participants only valid with 'over' %q", line)
 			}
@@ -119,9 +116,6 @@ func parseSequence(src string) (*SeqDiagram, error) {
 
 		case seqActRe.MatchString(line):
 			m := seqActRe.FindStringSubmatch(line)
-			if d.participant(m[2]) == nil {
-				return nil, unsup("%s of unknown participant %q", m[1], m[2])
-			}
 			*curItems() = append(*curItems(), &SeqActivate{P: m[2], On: m[1] == "activate"})
 
 		case seqFrameRe.MatchString(line):
@@ -157,6 +151,38 @@ func parseSequence(src string) (*SeqDiagram, error) {
 	}
 	if len(stack) != 0 {
 		return nil, unsup("unclosed %q frame", stack[len(stack)-1].Kind)
+	}
+	// Notes/activate/deactivate don't implicitly create participants, but may
+	// forward-reference one declared later in the document (e.g. by a
+	// message); validate against the fully-built participant set only now.
+	var checkRefs func(items []SeqItem) error
+	checkRefs = func(items []SeqItem) error {
+		for _, it := range items {
+			switch v := it.(type) {
+			case *SeqNote:
+				if d.participant(v.A) == nil || (v.B != "" && d.participant(v.B) == nil) {
+					return unsup("note references unknown participant %q", v.Text)
+				}
+			case *SeqActivate:
+				if d.participant(v.P) == nil {
+					verb := "deactivate"
+					if v.On {
+						verb = "activate"
+					}
+					return unsup("%s of unknown participant %q", verb, v.P)
+				}
+			case *SeqFrame:
+				for _, s := range v.Sections {
+					if err := checkRefs(s.Items); err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
+	}
+	if err := checkRefs(d.Items); err != nil {
+		return nil, err
 	}
 	return d, nil
 }

@@ -228,3 +228,155 @@ func TestSeqParseUnsupported(t *testing.T) {
 		}
 	}
 }
+
+func layoutSeqFixture(t *testing.T, src string) *SeqDiagram {
+	t.Helper()
+	d := mustParseSeq(t, src)
+	if err := layoutSequence(d, Light); err != nil {
+		t.Fatalf("layoutSequence: %v", err)
+	}
+	return d
+}
+
+func TestSeqLayoutLifelinesOrderedAndSized(t *testing.T) {
+	d := layoutSeqFixture(t, `sequenceDiagram
+participant a as Short
+participant b as A Much Longer Participant Label
+a->>b: hi`)
+	pa, pb := d.participant("a"), d.participant("b")
+	if pa.W <= 0 || pa.H <= 0 || pb.W <= pa.W {
+		t.Fatalf("box sizing wrong: %+v %+v", pa, pb)
+	}
+	if pa.X >= pb.X {
+		t.Fatalf("lifelines out of order: %f >= %f", pa.X, pb.X)
+	}
+	if d.Width <= pb.X || d.Height <= 0 {
+		t.Fatalf("diagram bounds wrong: %f x %f", d.Width, d.Height)
+	}
+}
+
+func TestSeqLayoutGapFitsMessageLabel(t *testing.T) {
+	long := "an extremely long message label that needs lots of horizontal room"
+	d := layoutSeqFixture(t, "sequenceDiagram\na->>b: "+long)
+	pa, pb := d.participant("a"), d.participant("b")
+	lw, _ := measureText(long, Light.FontSize)
+	if gap := pb.X - pa.X; gap < lw {
+		t.Fatalf("gap %f narrower than label %f", gap, lw)
+	}
+}
+
+func TestSeqLayoutYMonotonic(t *testing.T) {
+	d := layoutSeqFixture(t, `sequenceDiagram
+a->>b: one
+b-->>a: two
+Note over a,b: pause
+a->>a: think
+a-xb: three`)
+	var prev float64
+	var walk func(items []SeqItem)
+	walk = func(items []SeqItem) {
+		for _, it := range items {
+			var y float64
+			switch v := it.(type) {
+			case *SeqMessage:
+				y = v.Y
+			case *SeqNote:
+				y = v.Y
+			case *SeqFrame:
+				y = v.Y
+				for _, s := range v.Sections {
+					walk(s.Items)
+				}
+				continue
+			default:
+				continue
+			}
+			if y <= prev {
+				t.Fatalf("y not increasing: %f then %f", prev, y)
+			}
+			prev = y
+		}
+	}
+	walk(d.Items)
+}
+
+func TestSeqLayoutAutonumber(t *testing.T) {
+	d := layoutSeqFixture(t, `sequenceDiagram
+autonumber
+a->>b: one
+loop l
+  b->>a: two
+end
+Note over a: not numbered
+a->>b: three`)
+	if n := d.Items[0].(*SeqMessage).Num; n != 1 {
+		t.Fatalf("first num %d", n)
+	}
+	if n := d.Items[1].(*SeqFrame).Sections[0].Items[0].(*SeqMessage).Num; n != 2 {
+		t.Fatalf("framed num %d", n)
+	}
+	if n := d.Items[3].(*SeqMessage).Num; n != 3 {
+		t.Fatalf("third num %d", n)
+	}
+}
+
+func TestSeqLayoutFrameContainsChildren(t *testing.T) {
+	d := layoutSeqFixture(t, `sequenceDiagram
+alt yes
+  a->>b: one
+else no
+  a->>b: two
+end`)
+	f := d.Items[0].(*SeqFrame)
+	if f.W <= 0 || f.H <= 0 {
+		t.Fatalf("frame unsized: %+v", f)
+	}
+	if len(f.DividerYs) != 1 {
+		t.Fatalf("dividers: %v", f.DividerYs)
+	}
+	m1 := f.Sections[0].Items[0].(*SeqMessage)
+	m2 := f.Sections[1].Items[0].(*SeqMessage)
+	if m1.Y <= f.Y || m1.Y >= f.DividerYs[0] || m2.Y <= f.DividerYs[0] || m2.Y >= f.Y+f.H {
+		t.Fatalf("messages not inside sections: f=%+v m1=%f div=%f m2=%f", f, m1.Y, f.DividerYs[0], m2.Y)
+	}
+	pa, pb := d.participant("a"), d.participant("b")
+	if f.X >= pa.X || f.X+f.W <= pb.X {
+		t.Fatalf("frame doesn't span involved lifelines: f=%+v", f)
+	}
+}
+
+func TestSeqLayoutActivations(t *testing.T) {
+	d := layoutSeqFixture(t, `sequenceDiagram
+a->>+b: outer on
+a->>+b: inner on
+b-->>-a: inner off
+b-->>-a: outer off`)
+	if len(d.Activations) != 2 {
+		t.Fatalf("activations %d, want 2", len(d.Activations))
+	}
+	var outer, inner SeqActivation
+	for _, act := range d.Activations {
+		if act.Level == 0 {
+			outer = act
+		} else {
+			inner = act
+		}
+	}
+	if outer.P.ID != "b" || inner.P.ID != "b" || inner.Level != 1 {
+		t.Fatalf("activations: %+v %+v", outer, inner)
+	}
+	if !(outer.Y0 < inner.Y0 && inner.Y1 < outer.Y1) {
+		t.Fatalf("inner not nested in outer: outer=%+v inner=%+v", outer, inner)
+	}
+}
+
+func TestSeqLayoutActivationAutoCloseAndError(t *testing.T) {
+	d := layoutSeqFixture(t, "sequenceDiagram\nactivate a\na->>b: x")
+	if len(d.Activations) != 1 || d.Activations[0].Y1 <= d.Activations[0].Y0 {
+		t.Fatalf("auto-close failed: %+v", d.Activations)
+	}
+	bad := mustParseSeq(t, "sequenceDiagram\nparticipant a\ndeactivate a")
+	if err := layoutSequence(bad, Light); err == nil {
+		t.Fatal("unmatched deactivate must error")
+	}
+}

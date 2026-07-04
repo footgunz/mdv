@@ -26,7 +26,9 @@ func TestDetect(t *testing.T) {
 }
 
 func TestRenderUnsupportedKind(t *testing.T) {
-	_, err := Render([]byte("sequenceDiagram\nA->>B: hi"), Light)
+	// gantt stays outside the supported subset; sequenceDiagram graduated
+	// out of this check once its pipeline landed (see TestRenderDispatchesSequence).
+	_, err := Render([]byte("gantt\ntitle X"), Light)
 	if !errors.Is(err, ErrUnsupported) {
 		t.Fatalf("want ErrUnsupported, got %v", err)
 	}

@@ -32,7 +32,13 @@ func Render(src []byte, theme Theme) ([]byte, error) {
 		if err := layoutSequence(d, theme); err != nil {
 			return nil, err
 		}
-		return emitSequence(d, theme), nil
+		// ponytail: emitSequence is still Task 4's stub (returns nil) until the
+		// SVG emitter lands; treat that as unsupported so callers fall back to
+		// mermaid.js instead of embedding an empty diagram.
+		if out := emitSequence(d, theme); out != nil {
+			return out, nil
+		}
+		return nil, ErrUnsupported
 	default:
 		return nil, ErrUnsupported
 	}
