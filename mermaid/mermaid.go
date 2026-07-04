@@ -43,6 +43,5 @@ func detect(src string) (string, string) {
 	return "", ""
 }
 
-// Stubs replaced by Tasks 4 (layout.go), 5 (svg.go).
-func layout(g *Graph) error         { return ErrUnsupported }
+// Stub replaced by Task 5 (svg.go).
 func emit(g *Graph, t Theme) []byte { return nil }
