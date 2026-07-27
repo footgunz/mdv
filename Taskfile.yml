@@ -17,6 +17,21 @@ tasks:
       - cp build/darwin/mdv.icns mdv.app/Contents/Resources/mdv.icns
       - codesign --force --sign - mdv.app
 
+  install-app:
+    desc: Install mdv.app to /Applications and link it onto PATH as `mdv`
+    deps: [app]
+    cmds:
+      # /Applications, not the repo: `task clean` removes ./mdv.app and would
+      # leave the symlink dangling.
+      - rm -rf /Applications/mdv.app
+      - cp -R mdv.app /Applications/mdv.app
+      # One binary for both entry points. Invoked through the symlink,
+      # os.Executable reports the link path, so bundled() stays false and mdv
+      # keeps its command-line behaviour (usage on no args).
+      - mkdir -p "$(go env GOPATH)/bin"
+      - ln -sf /Applications/mdv.app/Contents/MacOS/mdv "$(go env GOPATH)/bin/mdv"
+      - echo "installed /Applications/mdv.app, linked $(go env GOPATH)/bin/mdv"
+
   icons:
     desc: Rasterize icon.svg to the dock icon and mdv.icns (needs rsvg-convert)
     sources: ['cmd/mdv/icon.svg']
@@ -44,7 +59,7 @@ tasks:
     cmds:
       - rm -rf mdv mdv.app
 
-  install:
-    desc: Install mdv to GOPATH/bin
+  install-cli-only:
+    desc: Install just the CLI binary to GOPATH/bin (replaces any install-app symlink)
     cmds:
       - go install -tags desktop,production ./cmd/mdv
