@@ -6,6 +6,7 @@ live-reloads on save. See README.md for user-facing behavior and config keys.
 ## Build & test
 
     go build -tags desktop,production -o mdv ./cmd/mdv    # or: task build
+    task app                     # macOS .app bundle (Finder "Open With")
     go test ./...                # headless, no window needed
     ./mdv README.md              # manual check; Ctrl-C or close window to quit
 
@@ -41,10 +42,20 @@ display.
 - **`-framework UniformTypeIdentifiers`** in icon_darwin.go's LDFLAGS is
   load-bearing: wails v2.12 references UTType but doesn't link the
   framework itself.
-- **Dock icon:** `cmd/mdv/icon.png` is embedded and set at runtime
-  (`icon_darwin.go`). Regenerate from `icon.svg` with the qlmanage command
-  in its header comment. qlmanage flattens transparency onto white, so
-  `icon_darwin.go` clips to the tile's rounded rect (48,48 928×928 r=220) —
-  if you change the tile geometry in the SVG, update the clip to match.
-  The generic exec icon flashing during quit is expected (no .app bundle).
+- **"Open With" is an Apple Event, not argv.** Finder never puts the
+  document in `os.Args`; it sends `kAEOpenDocuments`, surfaced by Wails as
+  `mac.Options.OnFileOpen`. So `main.go` accepts zero args when `bundled()`
+  (exe path inside `.app/Contents/MacOS/`) and the server starts with an
+  empty entry, serving a placeholder until one arrives. Finder reuses a
+  running instance for a second document, hence `server.SetEntry` — which
+  moves `baseDir`, i.e. the traversal boundary, not just the entry file.
+  Wails buffers open events (100 deep), so one landing before the window
+  exists is picked up by the initial load of `/`; `OnDomReady` covers the
+  narrow case of one landing just after the placeholder rendered.
+- **Icons:** `task icons` rasterizes `cmd/mdv/icon.svg` into the embedded
+  dock icon (`icon.png`) and the bundle's `build/darwin/mdv.icns`. Needs
+  `rsvg-convert` (`brew install librsvg`) — it renders real transparency,
+  unlike qlmanage, which is why `icon_darwin.go` no longer clips corners.
+  `setDockIcon` still matters for the bare binary; inside `mdv.app` the
+  `.icns` wins.
 - Binaries at repo root (`mdv`) are gitignored build artifacts.

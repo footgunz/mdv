@@ -1,8 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- Dock icon source. Regenerate icon.png with:
-       qlmanage -t -s 1024 -o cmd/mdv cmd/mdv/icon.svg && mv cmd/mdv/icon.svg.png cmd/mdv/icon.png
-       Tile geometry (48,48 928x928 r=220) is mirrored by the rounded-corner
-       clip in icon_darwin.go — keep them in sync. -->
+  <!-- Icon source for both the embedded dock icon and mdv.app's .icns.
+       Regenerate both with `task icons` (needs rsvg-convert). -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#3b5188"/>

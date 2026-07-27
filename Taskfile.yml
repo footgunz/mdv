@@ -6,6 +6,34 @@ tasks:
     cmds:
       - go build -tags desktop,production -o mdv ./cmd/mdv
 
+  app:
+    desc: Build mdv.app (macOS bundle; adds "Open With" support)
+    deps: [build]
+    cmds:
+      - rm -rf mdv.app
+      - mkdir -p mdv.app/Contents/MacOS mdv.app/Contents/Resources
+      - cp mdv mdv.app/Contents/MacOS/mdv
+      - cp build/darwin/Info.plist mdv.app/Contents/Info.plist
+      - cp build/darwin/mdv.icns mdv.app/Contents/Resources/mdv.icns
+      - codesign --force --sign - mdv.app
+
+  icons:
+    desc: Rasterize icon.svg to the dock icon and mdv.icns (needs rsvg-convert)
+    sources: ['cmd/mdv/icon.svg']
+    generates: ['cmd/mdv/icon.png', 'build/darwin/mdv.icns']
+    cmds:
+      - rsvg-convert -w 1024 -h 1024 cmd/mdv/icon.svg -o cmd/mdv/icon.png
+      - rm -rf build/darwin/mdv.iconset && mkdir -p build/darwin/mdv.iconset
+      - |
+        for sz in 16 32 128 256 512; do
+          rsvg-convert -w $sz -h $sz cmd/mdv/icon.svg \
+            -o build/darwin/mdv.iconset/icon_${sz}x${sz}.png
+          rsvg-convert -w $((sz*2)) -h $((sz*2)) cmd/mdv/icon.svg \
+            -o build/darwin/mdv.iconset/icon_${sz}x${sz}@2x.png
+        done
+      - iconutil -c icns -o build/darwin/mdv.icns build/darwin/mdv.iconset
+      - rm -rf build/darwin/mdv.iconset
+
   lint:
     desc: Run golangci-lint
     cmds:
@@ -14,7 +42,7 @@ tasks:
   clean:
     desc: Remove build artifacts
     cmds:
-      - rm -f mdv
+      - rm -rf mdv mdv.app
 
   install:
     desc: Install mdv to GOPATH/bin
