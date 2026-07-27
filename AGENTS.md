@@ -7,6 +7,7 @@ live-reloads on save. See README.md for user-facing behavior and config keys.
 
     go build -tags desktop,production -o mdv ./cmd/mdv    # or: task build
     task app                     # macOS .app bundle (Finder "Open With")
+    task install-app             # -> /Applications + symlink on PATH
     go test ./...                # headless, no window needed
     ./mdv README.md              # manual check; Ctrl-C or close window to quit
 
@@ -52,6 +53,16 @@ display.
   Wails buffers open events (100 deep), so one landing before the window
   exists is picked up by the initial load of `/`; `OnDomReady` covers the
   narrow case of one landing just after the placeholder rendered.
+- **One binary, two entry points:** `task install-app` symlinks
+  `$GOPATH/bin/mdv` at the executable inside `/Applications/mdv.app`.
+  `os.Executable()` on darwin reports the path *as invoked*, so through the
+  symlink `bundled()` is false and CLI semantics hold, while Finder's launch
+  of the real path gets bundle semantics — the same binary, behaving
+  correctly both ways. The CLI instance has a NULL bundle id, so
+  LaunchServices routes "Open With" documents to a separate bundle instance
+  rather than hijacking a terminal-launched window. Install to
+  `/Applications`, never symlink into the repo: `task clean` removes
+  `./mdv.app`.
 - **Icons:** `task icons` rasterizes `cmd/mdv/icon.svg` into the embedded
   dock icon (`icon.png`) and the bundle's `build/darwin/mdv.icns`. Needs
   `rsvg-convert` (`brew install librsvg`) — it renders real transparency,

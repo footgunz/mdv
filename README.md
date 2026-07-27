@@ -29,12 +29,20 @@ Debian/Ubuntu:
 
 ### macOS app bundle
 
-    task app        # -> ./mdv.app
+    task app            # -> ./mdv.app
+    task install-app    # -> /Applications/mdv.app + `mdv` on PATH
 
-Drag `mdv.app` to `/Applications` and it shows up under Finder's **Open
-With** for `.md` files, with a proper icon and no terminal. It registers as
-an alternate handler, so it won't take over as your default editor for
-Markdown — pick "Always Open With" yourself if you want that.
+`mdv.app` shows up under Finder's **Open With** for `.md` files, with a
+proper icon and no terminal. It registers as an alternate handler, so it
+won't take over as your default editor for Markdown — pick "Always Open
+With" yourself if you want that.
+
+`task install-app` is the one to use if you launch mdv both ways: it copies
+the bundle to `/Applications` and symlinks `$(go env GOPATH)/bin/mdv` at the
+binary inside it, so a single copy serves the command line and Finder and
+the two can't drift. Run through the symlink, `mdv` behaves exactly as
+before — usage on no arguments, a window on `mdv file.md`. (`task
+install-cli-only` installs the bare binary instead, replacing that symlink.)
 
 Opening a second file reuses the running window. Launching `mdv.app` with no
 document shows a placeholder until you open one.
