@@ -27,6 +27,21 @@ Debian/Ubuntu:
 
 **macOS** uses the system WebKit; no extra packages are needed.
 
+### macOS app bundle
+
+    task app        # -> ./mdv.app
+
+Drag `mdv.app` to `/Applications` and it shows up under Finder's **Open
+With** for `.md` files, with a proper icon and no terminal. It registers as
+an alternate handler, so it won't take over as your default editor for
+Markdown — pick "Always Open With" yourself if you want that.
+
+Opening a second file reuses the running window. Launching `mdv.app` with no
+document shows a placeholder until you open one.
+
+`task icons` regenerates `cmd/mdv/icon.png` and `build/darwin/mdv.icns` from
+`cmd/mdv/icon.svg`; it needs `rsvg-convert` (`brew install librsvg`).
+
 ## Features
 
 - GitHub-flavored Markdown (tables, task lists, strikethrough)

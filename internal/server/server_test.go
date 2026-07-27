@@ -92,6 +92,63 @@ func TestServerUserCSS(t *testing.T) {
 	}
 }
 
+// SetEntry is how a macOS "Open With" re-points a running instance, possibly
+// at a file in another directory — which also moves the traversal boundary.
+func TestServerSetEntrySwitchesDirectory(t *testing.T) {
+	a, b := t.TempDir(), t.TempDir()
+	for path, src := range map[string]string{
+		filepath.Join(a, "a.md"): "# Alpha",
+		filepath.Join(b, "b.md"): "# Beta",
+	} {
+		if err := os.WriteFile(path, []byte(src), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	srv := New(a, "a.md", render.Renderer{Cfg: config.Default()}, "")
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	if code, body := get(t, ts.URL+"/"); code != 200 || !strings.Contains(body, "Alpha") {
+		t.Fatalf("before SetEntry: status %d body %s", code, body)
+	}
+	srv.SetEntry(filepath.Join(b, "b.md"))
+	if code, body := get(t, ts.URL+"/"); code != 200 || !strings.Contains(body, "Beta") {
+		t.Fatalf("after SetEntry: status %d body %s", code, body)
+	}
+	// the old directory is out of bounds now, not merely unlinked
+	if code, _ := get(t, ts.URL+"/a.md"); code != 404 {
+		t.Fatalf("stale dir still reachable: status %d", code)
+	}
+}
+
+// A bundle launched with no document has no baseDir, so there is no boundary
+// to check against — it must refuse to resolve anything at all.
+func TestServerNoEntryServesPlaceholder(t *testing.T) {
+	srv := New("", "", render.Renderer{Cfg: config.Default()}, "")
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	for _, path := range []string{"/", "/etc/hosts"} {
+		code, body := get(t, ts.URL+path)
+		if code != 200 || !strings.Contains(body, "Open a Markdown file") {
+			t.Fatalf("GET %s: status %d body %s", path, code, body)
+		}
+	}
+	if srv.HasEntry() {
+		t.Fatal("HasEntry true with no document")
+	}
+}
+
+func get(t *testing.T, url string) (int, string) {
+	t.Helper()
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode, readAll(t, resp)
+}
+
 func readAll(t *testing.T, resp *http.Response) string {
 	t.Helper()
 	b, err := io.ReadAll(resp.Body)

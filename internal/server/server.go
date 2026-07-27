@@ -13,17 +13,29 @@ import (
 // Server renders Markdown files under baseDir and serves them plus their
 // sibling assets. All rendering happens on demand.
 type Server struct {
-	baseDir string
-	entry   string // basename served at "/" (the file mdv was opened with)
 	r       render.Renderer
 	userCSS string // optional stylesheet served at /_user.css
 	mu      sync.Mutex
+	baseDir string
+	entry   string // basename served at "/" (the file mdv was opened with)
 	current string
 	onNav   func(abs string)
 }
 
+// New serves entry (a basename under baseDir) at "/". Both may be empty: a
+// bundle launched from the Dock has no document until one arrives via
+// SetEntry, and renders a placeholder until then.
 func New(baseDir, entry string, r render.Renderer, userCSS string) *Server {
 	return &Server{baseDir: baseDir, entry: entry, r: r, userCSS: userCSS}
+}
+
+// SetEntry re-points "/" at abs. macOS delivers "Open With" documents to an
+// already-running app as an Apple Event, so the served file can change after
+// startup — and with it baseDir, which is also the traversal boundary.
+func (s *Server) SetEntry(abs string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.baseDir, s.entry = filepath.Dir(abs), filepath.Base(abs)
 }
 
 func (s *Server) SetOnNav(fn func(abs string)) { s.onNav = fn }
@@ -32,6 +44,13 @@ func (s *Server) Current() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.current
+}
+
+// HasEntry reports whether a document has been chosen yet.
+func (s *Server) HasEntry() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.entry != ""
 }
 
 func (s *Server) Handler() http.Handler {
@@ -49,13 +68,24 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	baseDir, entry := s.baseDir, s.entry
+	s.mu.Unlock()
+	if entry == "" {
+		// No document yet: launched from the Dock, waiting on an open event.
+		// Bail before resolving anything — an empty baseDir is no boundary.
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(s.r.Page([]byte("<h1>mdv</h1><p>Open a Markdown file.</p>"), "mdv", false))
+		return
+	}
+
 	// Resolve the request path safely under baseDir (block traversal).
 	rel := strings.TrimPrefix(filepath.Clean(r.URL.Path), "/")
 	if rel == "" {
-		rel = s.entry // the Wails window loads "/", not "/<file>.md"
+		rel = entry // the Wails window loads "/", not "/<file>.md"
 	}
-	abs := filepath.Join(s.baseDir, rel)
-	if abs != s.baseDir && !strings.HasPrefix(abs, s.baseDir+string(os.PathSeparator)) {
+	abs := filepath.Join(baseDir, rel)
+	if abs != baseDir && !strings.HasPrefix(abs, baseDir+string(os.PathSeparator)) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
