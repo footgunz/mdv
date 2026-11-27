@@ -79,7 +79,10 @@ display.
   `console_windows.go` treats "we are the only process on our console" as
   an Explorer launch: it `FreeConsole`s before the window opens, reports
   fatal errors via MessageBox, and with no document pops an open dialog.
-  Explorer passes documents in argv, so there is no `OnFileOpen` analogue.
+  Explorer passes documents in argv, so there is no `OnFileOpen` analogue;
+  instead Explorer launches (only) take Wails' `SingleInstanceLock`, so a
+  later one forwards its argv to the running window and exits — the same
+  bundle-reuses / CLI-separate split as macOS.
 - **URL paths vs file paths:** clean request paths with `path`, not
   `path/filepath` — on Windows `filepath.Clean("/")` is `\`. The traversal
   boundary is `filepath.IsLocal`, which also rejects drive letters and UNC.

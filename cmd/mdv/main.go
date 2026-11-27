@@ -4,8 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -126,17 +128,44 @@ func main() {
 		}
 	}
 
+	// Windows: Explorer launches share one window, like Finder's "Open With"
+	// on macOS. A later Explorer launch finds Wails' named mutex, forwards its
+	// argv here and exits. Terminal launches never take the lock, so they
+	// always get their own window and never hijack (or get hijacked by) one
+	// opened from Explorer — mirroring the bundle vs. CLI split on macOS.
+	var single *options.SingleInstanceLock
+	if gui && runtime.GOOS == "windows" {
+		single = &options.SingleInstanceLock{
+			UniqueId: "mdv-explorer",
+			OnSecondInstanceLaunch: func(d options.SecondInstanceData) {
+				if p := docArg(d.Args); p != "" {
+					if !filepath.IsAbs(p) {
+						p = filepath.Join(d.WorkingDirectory, p)
+					}
+					openFile(p)
+				}
+				mu.Lock()
+				ctx := appCtx
+				mu.Unlock()
+				if ctx != nil {
+					raiseWindow(ctx)
+				}
+			},
+		}
+	}
+
 	var pickOnce sync.Once
 	if gui {
 		detachConsole()
 	}
 	if err := wails.Run(&options.App{
-		Title:       title,
-		Width:       cfg.WindowWidth,
-		Height:      cfg.WindowHeight,
-		AssetServer: &assetserver.Options{Handler: srv.Handler()},
-		Mac:         &mac.Options{OnFileOpen: openFile},
-		Windows:     &windows.Options{Theme: windows.SystemDefault},
+		Title:              title,
+		Width:              cfg.WindowWidth,
+		Height:             cfg.WindowHeight,
+		AssetServer:        &assetserver.Options{Handler: srv.Handler()},
+		Mac:                &mac.Options{OnFileOpen: openFile},
+		Windows:            &windows.Options{Theme: windows.SystemDefault},
+		SingleInstanceLock: single,
 		OnStartup: func(ctx context.Context) {
 			mu.Lock()
 			appCtx = ctx
@@ -194,4 +223,27 @@ func main() {
 	}); err != nil {
 		fail(1, fmt.Sprintln("mdv:", err))
 	}
+}
+
+// docArg extracts the document from a forwarded second-instance argv, using
+// the same flags as main so "-mermaid-renderer js file.md" still finds it.
+func docArg(args []string) string {
+	fs := flag.NewFlagSet("mdv", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	fs.String("mermaid-renderer", "", "")
+	fs.Bool("html", false, "")
+	if fs.Parse(args) != nil || fs.NArg() != 1 {
+		return ""
+	}
+	return fs.Arg(0)
+}
+
+// raiseWindow brings the shared window forward for a forwarded open. Windows
+// won't let a background process take focus outright; toggling topmost
+// still lifts it above the Explorer window that sent the file.
+func raiseWindow(ctx context.Context) {
+	wruntime.WindowUnminimise(ctx)
+	wruntime.WindowShow(ctx)
+	wruntime.WindowSetAlwaysOnTop(ctx, true)
+	wruntime.WindowSetAlwaysOnTop(ctx, false)
 }

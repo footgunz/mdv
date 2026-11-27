@@ -70,7 +70,8 @@ default handler; pick mdv under "Open with > Choose another app" and tick
 Started from Explorer, mdv hides the console Windows gives it and shows
 errors in a message box instead. Double-clicked with no document, it opens
 a file picker. From a terminal it behaves exactly as on other platforms.
-Each Explorer open starts its own window.
+Opening a second file from Explorer reuses that window, as Finder does;
+`mdv file.md` from a terminal always gets a window of its own.
 
 `task winres` rebuilds the embedded exe icon, manifest (per-monitor DPI
 awareness) and version info (`cmd/mdv/rsrc_windows_*.syso`) from
