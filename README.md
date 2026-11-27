@@ -56,15 +56,19 @@ document shows a placeholder until you open one.
 `task icons` regenerates `cmd/mdv/icon.png` and `build/darwin/mdv.icns` from
 `cmd/mdv/icon.svg`; it needs `rsvg-convert` (`brew install librsvg`).
 
-### Windows "Open with"
+### Windows: command line, "Open with", default handler
 
-    task install-windows    # or: powershell -ExecutionPolicy Bypass -File build\windows\install.ps1
+    task install-windows            # CLI + Explorer "Open with"
+    task install-windows-default    # ...and make mdv the .md handler
 
-This `go install`s `mdv.exe` into `$(go env GOPATH)in` and registers it
+(or `powershell -ExecutionPolicy Bypass -File build\windows\install.ps1
+[-Default]`). This `go install`s `mdv.exe` into `$(go env GOPATH)in` (put
+that on your PATH for `mdv file.md` in cmd or PowerShell) and registers it
 per-user (HKCU, no admin) under Explorer's **Open with** for `.md` and
-`.markdown`. Like the macOS bundle it is an alternate handler; choose it
-from "Open with > Choose another app" to make it the default. `-Uninstall`
-removes the registration.
+`.markdown`, and in **Settings > Default apps**. `-Default` makes it the
+handler; Windows won't let a program override a choice you already made, so
+if another app owns `.md` it opens mdv's Default apps page for you to
+confirm. `-Uninstall` removes the registration.
 
 Started from Explorer, mdv hides the console Windows gives it and shows
 errors in a message box instead. Double-clicked with no document, it opens
