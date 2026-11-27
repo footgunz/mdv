@@ -42,7 +42,7 @@ display.
   server), plus `webkit2_41` on Linux. golangci-lint gets them from
   `.golangci.yml`.
 - **`-framework UniformTypeIdentifiers`** in icon_darwin.go's LDFLAGS is
-  load-bearing: wails v2.12 references UTType but doesn't link the
+  load-bearing: wails v2 (still as of v2.17) references UTType but doesn't link the
   framework itself.
 - **"Open With" is an Apple Event, not argv.** Finder never puts the
   document in `os.Args`; it sends `kAEOpenDocuments`, surfaced by Wails as
