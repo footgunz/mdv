@@ -27,6 +27,12 @@ Debian/Ubuntu:
 
 **macOS** uses the system WebKit; no extra packages are needed.
 
+**Windows** uses the WebView2 runtime (preinstalled on Windows 11 and
+current Windows 10). Wails' Windows backend is pure Go, so no C compiler
+is needed:
+
+    go build -tags desktop,production -o mdv.exe ./cmd/mdv    # or: task build
+
 ### macOS app bundle
 
     task app            # -> ./mdv.app
@@ -50,6 +56,27 @@ document shows a placeholder until you open one.
 `task icons` regenerates `cmd/mdv/icon.png` and `build/darwin/mdv.icns` from
 `cmd/mdv/icon.svg`; it needs `rsvg-convert` (`brew install librsvg`).
 
+### Windows: command line and "Open with"
+
+    task install-windows    # or: powershell -ExecutionPolicy Bypass -File build\windows\install.ps1
+
+This `go install`s `mdv.exe` into `$(go env GOPATH)\bin` (put
+that on your PATH for `mdv file.md` in cmd or PowerShell) and registers it
+per-user (HKCU, no admin) under Explorer's **Open with** for `.md` and
+`.markdown`, and in **Settings > Default apps**. It never takes over as the
+default handler; pick mdv under "Open with > Choose another app" and tick
+**Always** for that. `-Uninstall` removes the registration.
+
+Started from Explorer, mdv hides the console Windows gives it and shows
+errors in a message box instead. Double-clicked with no document, it opens
+a file picker. From a terminal it behaves exactly as on other platforms.
+Opening a second file from Explorer reuses that window, as Finder does;
+`mdv file.md` from a terminal always gets a window of its own.
+
+`task winres` rebuilds the embedded exe icon, manifest (per-monitor DPI
+awareness) and version info (`cmd/mdv/rsrc_windows_*.syso`) from
+`cmd/mdv/icon.png` and `build/windows/`.
+
 ## Features
 
 - GitHub-flavored Markdown (tables, task lists, strikethrough)
@@ -63,7 +90,8 @@ document shows a placeholder until you open one.
 ## Configuration
 
 Optional config file at `$XDG_CONFIG_HOME/mdv/config`
-(default `~/.config/mdv/config`), ghostty-style `key = value` lines:
+(default `~/.config/mdv/config`, i.e. `%USERPROFILE%\.config\mdv\config`
+on Windows), ghostty-style `key = value` lines:
 
     # ~/.config/mdv/config
     window-width = 1200
