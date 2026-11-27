@@ -84,7 +84,9 @@ awareness) and version info (`cmd/mdv/rsrc_windows_*.syso`) from
 - Inline Mermaid diagrams — common flowcharts, sequence diagrams, pie
   charts, and state diagrams render natively to SVG (no JS); other diagram
   types fall back to the bundled mermaid.js
-- `[[wikilinks]]` and relative links navigate, with back/forward
+- `[[wikilinks]]` and relative links navigate, with back/forward: Cmd-[ /
+  Cmd-] or Cmd-Left / Cmd-Right on macOS, Alt-Left / Alt-Right on Windows
+  and Linux, and the mouse's back/forward buttons
 - Live reload when the displayed file changes on disk
 
 ## Configuration

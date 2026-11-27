@@ -69,9 +69,39 @@ func (r Renderer) Page(body []byte, title string, includeMermaidJS bool) []byte 
 	}
 	b.WriteString(`<script src="/wails/ipc.js"></script><script src="/wails/runtime.js"></script>`)
 	b.WriteString(`<script>window.runtime.EventsOn('mdv:reload',function(){location.reload()});</script>`)
+	b.WriteString(historyKeysJS)
 	b.WriteString(`</body></html>`)
 	return b.Bytes()
 }
+
+// historyKeysJS gives the viewer browser-style back/forward. Neither webview
+// provides it: WKWebView's Cmd-[ / Cmd-] live in Safari's menus, not the
+// view, and Wails turns off WebView2's browser accelerator keys (Alt-Left).
+// Following a link to another .md is a real navigation, so history has the
+// entries; documents opened from Finder/Explorer use location.replace and
+// deliberately don't. The window title is normally set server-side when a
+// page is served; a page restored from the back-forward cache isn't
+// re-requested, so pageshow re-applies it. Static export (-html) omits all
+// this: it opens in a real browser.
+const historyKeysJS = `<script>(function(){
+var mac=/Mac/.test(navigator.platform);
+addEventListener('keydown',function(e){
+var d=0,k=e.key;
+if(e.ctrlKey||e.shiftKey)return;
+if(mac?(e.metaKey&&!e.altKey):(e.altKey&&!e.metaKey)){
+if(k==='ArrowLeft'||(mac&&k==='['))d=-1;
+else if(k==='ArrowRight'||(mac&&k===']'))d=1;
+}
+if(d){e.preventDefault();history.go(d);}
+});
+addEventListener('pageshow',function(e){
+if(e.persisted&&window.runtime)window.runtime.WindowSetTitle(document.title);
+});
+addEventListener('mouseup',function(e){
+if(e.button===3){e.preventDefault();history.back();}
+else if(e.button===4){e.preventDefault();history.forward();}
+});
+})();</script>`
 
 // StaticPage wraps a body fragment as a self-contained document for
 // -html export: styles inlined, mermaid.js inlined only when a diagram fell

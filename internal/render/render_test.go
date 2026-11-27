@@ -326,3 +326,14 @@ func TestRenderBodyNativePie(t *testing.T) {
 		t.Fatalf("pie must render natively (fallback=%v): %s", fallback, out)
 	}
 }
+
+// The live viewer needs its own back/forward keys (neither webview provides
+// them); the static export opens in a browser that already has them.
+func TestRenderPageHistoryKeys(t *testing.T) {
+	if !strings.Contains(string(testRenderer(nil).Page([]byte("x"), "t", false)), "history.go(d)") {
+		t.Error("Page lacks back/forward key handler")
+	}
+	if strings.Contains(string(testRenderer(nil).StaticPage([]byte("x"), "t", false)), "history.go(d)") {
+		t.Error("StaticPage should not carry the viewer's key handler")
+	}
+}
