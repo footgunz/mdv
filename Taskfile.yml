@@ -61,11 +61,6 @@ tasks:
     cmds:
       - powershell -NoProfile -ExecutionPolicy Bypass -File build/windows/install.ps1
 
-  install-windows-default:
-    desc: install-windows, plus make mdv the default .md/.markdown handler
-    cmds:
-      - powershell -NoProfile -ExecutionPolicy Bypass -File build/windows/install.ps1 -Default
-
   lint:
     desc: Run golangci-lint
     cmds:

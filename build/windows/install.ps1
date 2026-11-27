@@ -1,15 +1,11 @@
 # Installs mdv.exe to $(go env GOPATH)\bin and registers it with Explorer's
 # "Open with" for .md / .markdown files and in Settings > Default apps.
-# Per-user (HKCU): no admin needed.
+# Per-user (HKCU): no admin needed. It never takes over the default handler;
+# pick mdv under "Open with > Choose another app > Always" for that.
 #
-# -Default makes mdv the .md/.markdown handler. Windows 10/11 protect the
-# user's choice (UserChoice is hash-signed), so a program can't set it
-# silently: if a choice already exists, this opens mdv's page in Default apps
-# for a one-click confirm; otherwise the per-user class default is enough.
-#
-#   powershell -ExecutionPolicy Bypass -File build\windows\install.ps1 [-Default]
+#   powershell -ExecutionPolicy Bypass -File build\windows\install.ps1
 #   powershell -ExecutionPolicy Bypass -File build\windows\install.ps1 -Uninstall
-param([switch]$Uninstall, [switch]$Default)
+param([switch]$Uninstall)
 $ErrorActionPreference = 'Stop'
 
 $progId  = 'mdv.Markdown'
@@ -23,10 +19,6 @@ if ($Uninstall) {
     Remove-ItemProperty 'HKCU:\Software\RegisteredApplications' -Name mdv -ErrorAction SilentlyContinue
     foreach ($e in $exts) {
         Remove-ItemProperty "$classes\$e\OpenWithProgids" -Name $progId -ErrorAction SilentlyContinue
-        # only undo a class default we set ourselves
-        if ((Get-ItemProperty "$classes\$e" -ErrorAction SilentlyContinue).'(default)' -eq $progId) {
-            Set-ItemProperty "$classes\$e" -Name '(default)' -Value ''
-        }
     }
     Write-Host 'removed mdv file associations (the binary in GOPATH\bin is left in place)'
     return
@@ -75,30 +67,11 @@ foreach ($e in $exts) { Set-ItemProperty "$cap\FileAssociations" -Name $e -Value
 New-Item 'HKCU:\Software\RegisteredApplications' -Force | Out-Null
 Set-ItemProperty 'HKCU:\Software\RegisteredApplications' -Name mdv -Value 'Software\mdv\Capabilities'
 
-$needsConfirm = $false
-if ($Default) {
-    foreach ($e in $exts) {
-        # Honoured only while the user has made no explicit choice for $e.
-        Set-ItemProperty "$classes\$e" -Name '(default)' -Value $progId
-        $uc = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\$e\UserChoice"
-        $cur = (Get-ItemProperty $uc -ErrorAction SilentlyContinue).ProgId
-        if ($cur -and $cur -ne $progId) { $needsConfirm = $true }
-    }
-}
-
 # Tell Explorer the associations changed (SHCNE_ASSOCCHANGED).
 Add-Type -Namespace Win32 -Name Shell -MemberDefinition '[DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, uint f, System.IntPtr a, System.IntPtr b);'
 [Win32.Shell]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)
 
 Write-Host "installed $exe and registered it under Open with for $($exts -join ', ')"
-if ($needsConfirm) {
-    Write-Host 'another app is your chosen .md handler; Windows requires you to confirm the switch.'
-    Write-Host 'opening Settings > Default apps > mdv: set .md and .markdown to mdv there.'
-    Start-Process 'ms-settings:defaultapps?registeredAppUser=mdv'
-} elseif ($Default) {
-    Write-Host 'mdv is now the default for .md and .markdown'
-}
-
 # CLI use from cmd/PowerShell needs GOPATH\bin on the user PATH.
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if (-not (($userPath -split ';') -contains $gobin)) {
