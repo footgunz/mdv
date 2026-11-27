@@ -1,0 +1,32 @@
+{
+  "RT_GROUP_ICON": {
+    "APP": {
+      "0000": "../../cmd/mdv/icon.png"
+    }
+  },
+  "RT_MANIFEST": {
+    "#1": {
+      "0409": "mdv.exe.manifest"
+    }
+  },
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "fixed": {
+          "file_version": "0.1.0.0",
+          "product_version": "0.1.0.0"
+        },
+        "info": {
+          "0409": {
+            "FileDescription": "mdv Markdown viewer",
+            "FileVersion": "0.1.0.0",
+            "InternalName": "mdv",
+            "OriginalFilename": "mdv.exe",
+            "ProductName": "mdv",
+            "ProductVersion": "0.1.0.0"
+          }
+        }
+      }
+    }
+  }
+}

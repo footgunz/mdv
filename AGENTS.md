@@ -11,7 +11,8 @@ live-reloads on save. See README.md for user-facing behavior and config keys.
     go test ./...                # headless, no window needed
     ./mdv README.md              # manual check; Ctrl-C or close window to quit
 
-cgo is required for `cmd/mdv` (Wails v2). Linux needs `libgtk-3-dev
+cgo is required for `cmd/mdv` (Wails v2) on macOS and Linux; Windows
+builds with `CGO_ENABLED=0` (go-webview2 is pure Go). Linux needs `libgtk-3-dev
 libwebkit2gtk-4.1-dev` and the extra `webkit2_41` build tag. The library
 packages (`internal/...`, `pkg/mermaid`) build and test without cgo or a
 display.
@@ -69,4 +70,17 @@ display.
   unlike qlmanage, which is why `icon_darwin.go` no longer clips corners.
   `setDockIcon` still matters for the bare binary; inside `mdv.app` the
   `.icns` wins.
-- Binaries at repo root (`mdv`) are gitignored build artifacts.
+- **Windows has no Wails CLI build step**, so the icon, DPI-aware manifest
+  and version info come from committed `cmd/mdv/rsrc_windows_*.syso`
+  (`task winres`, config in `build/windows/`). Without the manifest the
+  window renders blurry on scaled displays.
+- **Windows launch detection:** `mdv.exe` is a console-subsystem binary (so
+  `-html` piping, usage and Ctrl-C work from a shell). `guiLaunch()` in
+  `console_windows.go` treats "we are the only process on our console" as
+  an Explorer launch: it `FreeConsole`s before the window opens, reports
+  fatal errors via MessageBox, and with no document pops an open dialog.
+  Explorer passes documents in argv, so there is no `OnFileOpen` analogue.
+- **URL paths vs file paths:** clean request paths with `path`, not
+  `path/filepath` — on Windows `filepath.Clean("/")` is `\`. The traversal
+  boundary is `filepath.IsLocal`, which also rejects drive letters and UNC.
+- Binaries at repo root (`mdv`, `mdv.exe`) are gitignored build artifacts.

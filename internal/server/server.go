@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -80,15 +81,19 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Resolve the request path safely under baseDir (block traversal).
-	rel := strings.TrimPrefix(filepath.Clean(r.URL.Path), "/")
+	// Clean as a URL path (always "/"-separated), then convert: on Windows
+	// filepath.Clean("/") is `\`, which would never match the "/" prefix.
+	rel := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
 	if rel == "" {
 		rel = entry // the Wails window loads "/", not "/<file>.md"
 	}
-	abs := filepath.Join(baseDir, rel)
-	if abs != baseDir && !strings.HasPrefix(abs, baseDir+string(os.PathSeparator)) {
+	rel = filepath.FromSlash(rel)
+	// IsLocal also rejects Windows drive/UNC/reserved names (C:\x, NUL).
+	if !filepath.IsLocal(rel) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
+	abs := filepath.Join(baseDir, rel)
 
 	if strings.HasSuffix(strings.ToLower(abs), ".md") {
 		s.serveMarkdown(w, abs)

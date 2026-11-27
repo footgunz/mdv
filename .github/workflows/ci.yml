@@ -29,3 +29,19 @@ jobs:
           go-version-file: go.mod
       - run: go build -tags desktop,production,webkit2_41 ./...
       - run: go test -tags desktop,production,webkit2_41 ./...
+
+  # Wails' Windows backend is pure Go (go-webview2), so no cgo or SDK needed.
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go build -tags desktop,production -o mdv.exe ./cmd/mdv
+        env:
+          CGO_ENABLED: '0'
+      - run: go test -tags desktop,production ./...
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.12.2

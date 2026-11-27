@@ -27,6 +27,12 @@ Debian/Ubuntu:
 
 **macOS** uses the system WebKit; no extra packages are needed.
 
+**Windows** uses the WebView2 runtime (preinstalled on Windows 11 and
+current Windows 10). Wails' Windows backend is pure Go, so no C compiler
+is needed:
+
+    go build -tags desktop,production -o mdv.exe ./cmd/mdv    # or: task build
+
 ### macOS app bundle
 
     task app            # -> ./mdv.app
@@ -50,6 +56,25 @@ document shows a placeholder until you open one.
 `task icons` regenerates `cmd/mdv/icon.png` and `build/darwin/mdv.icns` from
 `cmd/mdv/icon.svg`; it needs `rsvg-convert` (`brew install librsvg`).
 
+### Windows "Open with"
+
+    task install-windows    # or: powershell -ExecutionPolicy Bypass -File build\windows\install.ps1
+
+This `go install`s `mdv.exe` into `$(go env GOPATH)in` and registers it
+per-user (HKCU, no admin) under Explorer's **Open with** for `.md` and
+`.markdown`. Like the macOS bundle it is an alternate handler; choose it
+from "Open with > Choose another app" to make it the default. `-Uninstall`
+removes the registration.
+
+Started from Explorer, mdv hides the console Windows gives it and shows
+errors in a message box instead. Double-clicked with no document, it opens
+a file picker. From a terminal it behaves exactly as on other platforms.
+Each Explorer open starts its own window.
+
+`task winres` rebuilds the embedded exe icon, manifest (per-monitor DPI
+awareness) and version info (`cmd/mdv/rsrc_windows_*.syso`) from
+`cmd/mdv/icon.png` and `build/windows/`.
+
 ## Features
 
 - GitHub-flavored Markdown (tables, task lists, strikethrough)
@@ -63,7 +88,8 @@ document shows a placeholder until you open one.
 ## Configuration
 
 Optional config file at `$XDG_CONFIG_HOME/mdv/config`
-(default `~/.config/mdv/config`), ghostty-style `key = value` lines:
+(default `~/.config/mdv/config`, i.e. `%USERPROFILE%\.config\mdv\config`
+on Windows), ghostty-style `key = value` lines:
 
     # ~/.config/mdv/config
     window-width = 1200

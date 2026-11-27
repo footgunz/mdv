@@ -16,23 +16,36 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// bundled reports whether we are running as mdv.app/Contents/MacOS/mdv, where
-// Finder delivers the document as an Apple Event instead of argv and starting
-// with no file is legitimate.
-func bundled() bool {
-	exe, err := os.Executable()
-	return err == nil && strings.Contains(exe, ".app/Contents/MacOS/")
-}
-
 func main() {
+	// Launched from Finder (.app bundle) or Explorer (we own our console)
+	// rather than a terminal. Decided once, up front: on Windows the answer
+	// changes once detachConsole has run.
+	gui := guiLaunch()
+	// fail reports a fatal error; in a GUI launch nobody can see stderr.
+	fail := func(code int, msg string) {
+		fmt.Fprint(os.Stderr, msg)
+		if gui {
+			showError(msg)
+		}
+		os.Exit(code)
+	}
+
 	rendererFlag := flag.String("mermaid-renderer", "", "mermaid renderer: native or js (overrides config)")
 	htmlFlag := flag.Bool("html", false, "render self-contained HTML to stdout and exit")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: mdv [-html] [-mermaid-renderer native|js] <file.md>")
+		var b strings.Builder
+		fmt.Fprintln(&b, "usage: mdv [-html] [-mermaid-renderer native|js] <file.md>")
+		flag.CommandLine.SetOutput(&b)
 		flag.PrintDefaults()
+		flag.CommandLine.SetOutput(nil) // back to stderr
+		fmt.Fprint(os.Stderr, b.String())
+		if gui {
+			showError(b.String())
+		}
 	}
 	flag.Parse()
 
@@ -42,16 +55,15 @@ func main() {
 		var err error
 		abs, err = filepath.Abs(flag.Arg(0))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "mdv:", err)
-			os.Exit(1)
+			fail(1, fmt.Sprintln("mdv:", err))
 		}
 		if info, err := os.Stat(abs); err != nil || info.IsDir() {
-			fmt.Fprintf(os.Stderr, "mdv: cannot read %s\n", flag.Arg(0))
-			os.Exit(1)
+			fail(1, fmt.Sprintf("mdv: cannot read %s\n", flag.Arg(0)))
 		}
 	// A bundle launched from Finder gets its document as an Apple Event after
-	// startup (see OnFileOpen below), so no argument is fine there.
-	case flag.NArg() == 0 && bundled() && !*htmlFlag:
+	// startup (see OnFileOpen below), so no argument is fine there. On
+	// Windows a double-clicked mdv.exe offers an open-file dialog instead.
+	case flag.NArg() == 0 && gui && !*htmlFlag:
 	default:
 		flag.Usage()
 		os.Exit(2)
@@ -114,18 +126,24 @@ func main() {
 		}
 	}
 
+	var pickOnce sync.Once
+	if gui {
+		detachConsole()
+	}
 	if err := wails.Run(&options.App{
 		Title:       title,
 		Width:       cfg.WindowWidth,
 		Height:      cfg.WindowHeight,
 		AssetServer: &assetserver.Options{Handler: srv.Handler()},
 		Mac:         &mac.Options{OnFileOpen: openFile},
+		Windows:     &windows.Options{Theme: windows.SystemDefault},
 		OnStartup: func(ctx context.Context) {
 			mu.Lock()
 			appCtx = ctx
 			mu.Unlock()
 			setDockIcon()
-			// Ctrl-C is handled by wails itself (SIGINT/SIGTERM -> Quit).
+			// Ctrl-C is handled by wails itself (SIGINT/SIGTERM -> Quit), on
+			// Windows too: Go maps console Ctrl-C/Ctrl-Break to os.Interrupt.
 			if cfg.Watch {
 				rl, err := server.NewReloader(srv.Current, func() {
 					wruntime.EventsEmit(ctx, "mdv:reload")
@@ -150,6 +168,23 @@ func main() {
 			if srv.Current() == "" && srv.HasEntry() {
 				wruntime.WindowExecJS(ctx, "location.replace('/')")
 			}
+			// Windows GUI launch with no document: ask for one, once. Runs on
+			// a goroutine (wails calls OnDomReady with go), so blocking is fine.
+			// Cancel leaves the placeholder up.
+			if openDialogOnEmpty && !srv.HasEntry() {
+				pickOnce.Do(func() {
+					p, err := wruntime.OpenFileDialog(ctx, wruntime.OpenDialogOptions{
+						Title: "Open Markdown file",
+						Filters: []wruntime.FileFilter{
+							{DisplayName: "Markdown (*.md, *.markdown)", Pattern: "*.md;*.markdown;*.mdown;*.mkd"},
+							{DisplayName: "All files (*.*)", Pattern: "*.*"},
+						},
+					})
+					if err == nil && p != "" {
+						openFile(p)
+					}
+				})
+			}
 		},
 		OnShutdown: func(ctx context.Context) {
 			if reloader != nil {
@@ -157,7 +192,6 @@ func main() {
 			}
 		},
 	}); err != nil {
-		fmt.Fprintln(os.Stderr, "mdv:", err)
-		os.Exit(1)
+		fail(1, fmt.Sprintln("mdv:", err))
 	}
 }

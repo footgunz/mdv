@@ -157,3 +157,22 @@ func readAll(t *testing.T, resp *http.Response) string {
 	}
 	return string(b)
 }
+
+// The traversal boundary must hold for every OS's path syntax, not just "/":
+// on Windows a drive letter or `\` in the URL path would otherwise escape.
+func TestServerRejectsTraversal(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.md"), []byte("# Alpha"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := New(dir, "a.md", render.Renderer{Cfg: config.Default()}, "").Handler()
+	for _, p := range []string{"/../a.md", `/..\..\a.md`, "/C:/Windows/win.ini", `/\\host\share\x.md`} {
+		req := httptest.NewRequest("GET", "/", nil)
+		req.URL.Path = p // bypass the mux's own cleaning to hit serve's check
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code == 200 {
+			t.Errorf("GET %q: status 200, want refusal", p)
+		}
+	}
+}
